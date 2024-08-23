@@ -11,11 +11,11 @@ def main():
         return -1
     else:
         with fp:
-            fp.write("name: tp0\nservices:\n\tserver:\n\t\tcontainer_name: server\n\t\timage: server:latest\n\t\tentrypoint: python3 /main.py\n\t\tenvironment:\n\t\t\t- PYTHONUNBUFFERED=1\n\t\t\t- LOGGING_LEVEL=DEBUG\n\t\tnetworks:\n\t\t\t- testing_net\n\n")
+            fp.write("name: tp0\nservices:\n  server:\n    container_name: server\n    image: server:latest\n    entrypoint: python3 /main.py\n    environment:\n      - PYTHONUNBUFFERED=1\n      - LOGGING_LEVEL=DEBUG\n    networks:\n      - testing_net\n\n")
             client_count = int(sys.argv[2])
             for i in range(1,client_count+1):
-                fp.write("client"+str(i)+":\n\tcontainer_name: client"+str(i)+"\n\timage: client:latest\n\tentrypoint: /client\n\tenvironment:\n\t\t- CLI_ID="+str(i)+"\n\t\t- CLI_LOG_LEVEL=DEBUG\n\tnetworks:\n\t- testing_net\n\tdepends_on:\n\t- server\n\n")
-            fp.write("networks:\n\ttesting_net:\n\t\tipam:\n\t\t\tdriver: default\n\t\t\tconfig:\n\t\t\t\t- subnet: 172.25.125.0/24\n")
+                fp.write("  client"+str(i)+":\n    container_name: client"+str(i)+"\n    image: client:latest\n    entrypoint: /client\n    environment:\n      - CLI_ID="+str(i)+"\n      - CLI_LOG_LEVEL=DEBUG\n    networks:\n      - testing_net\n    depends_on:\n      - server\n\n")
+            fp.write("networks:\n  testing_net:\n    ipam:\n      driver: default\n      config:\n        - subnet: 172.25.125.0/24\n")
     
     fp.close()  
 if __name__ == "__main__":
