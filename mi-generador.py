@@ -22,7 +22,7 @@ def main():
     else:
         with fp:
             try:
-                checked_write(fp,"name: tp0\nservices:\n  server:\n    container_name: server\n    image: server:latest\n    entrypoint: python3 /main.py\n    environment:\n      - PYTHONUNBUFFERED=1\n      - LOGGING_LEVEL=DEBUG\n    networks:\n      - testing_net\n\n    volumes:\n    - ./server/config.ini:/config.ini")
+                checked_write(fp,"name: tp0\nservices:\n  server:\n    container_name: server\n    image: server:latest\n    entrypoint: python3 /main.py\n    environment:\n      - PYTHONUNBUFFERED=1\n      - LOGGING_LEVEL=DEBUG\n    networks:\n      - testing_net\n\n    volumes:\n    - ./server/config.ini:/config.ini\n\n")
             except writeErr:
                 return -1
             client_count = int(sys.argv[2])
