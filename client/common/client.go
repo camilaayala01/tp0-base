@@ -25,6 +25,7 @@ type Client struct {
 	conn   net.Conn
 }
 
+
 // NewClient Initializes a new client receiving the configuration
 // as a parameter
 func NewClient(config ClientConfig) *Client {
@@ -65,6 +66,7 @@ func (c *Client) StartClientLoop() {
 			c.config.ID,
 			msgID,
 		)
+	
 		msg, err := bufio.NewReader(c.conn).ReadString('\n')
 		c.conn.Close()
 
@@ -86,4 +88,10 @@ func (c *Client) StartClientLoop() {
 
 	}
 	log.Infof("action: loop_finished | result: success | client_id: %v", c.config.ID)
+}
+
+func (c *Client) Shutdown() {
+	log.Infof("action: shutting down | result: in progress | client_id: %v", c.config.ID)
+	c.conn.Close()
+	log.Infof("action: shutting down | result: success | client_id: %v", c.config.ID)
 }

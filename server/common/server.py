@@ -14,7 +14,6 @@ class Server:
 
     def graceful_shutdown(self, signum, frame):
         self.running = False
-        logging.info("Signal received" + signum)
         logging.info("Closing server socket")
         self._server_socket.close()
         logging.info("There are "+str(len(self._client_sockets))+" open client sockets")

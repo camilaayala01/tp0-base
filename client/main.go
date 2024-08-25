@@ -5,7 +5,9 @@ import (
 	"os"
 	"strings"
 	"time"
-
+	"os/signal"
+	"syscall"
+	"sync"
 	"github.com/op/go-logging"
 	"github.com/pkg/errors"
 	"github.com/spf13/viper"
@@ -90,6 +92,7 @@ func PrintConfig(v *viper.Viper) {
 	)
 }
 
+
 func main() {
 	v, err := InitConfig()
 	if err != nil {
@@ -99,7 +102,13 @@ func main() {
 	if err := InitLogger(v.GetString("log.level")); err != nil {
 		log.Criticalf("%s", err)
 	}
+	sigs := make(chan os.Signal, 1)
+	signal.Notify(sigs, syscall.SIGTERM)
 
+	var wg sync.WaitGroup
+	wg.Add(1)
+	done := make(chan bool)
+	
 	// Print program config with debugging purposes
 	PrintConfig(v)
 
@@ -111,5 +120,13 @@ func main() {
 	}
 
 	client := common.NewClient(clientConfig)
+	go func() {
+		defer wg.Done()
+		<-sigs
+		client.Shutdown()
+		close(done)
+		os.Exit(0)
+	}()
 	client.StartClientLoop()
+	wg.Wait()
 }
