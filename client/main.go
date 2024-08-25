@@ -125,8 +125,10 @@ func main() {
 		<-sigs
 		client.Shutdown()
 		close(done)
-		os.Exit(0)
 	}()
-	client.StartClientLoop()
+	go func() {
+		client.StartClientLoop()
+		defer wg.Done()
+	}()
 	wg.Wait()
 }
