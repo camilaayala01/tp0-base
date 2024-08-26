@@ -2,7 +2,8 @@ import socket
 import logging
 import signal
 from time import sleep
-
+from communication import messages
+from common.utils import *
 class Server:
     def __init__(self, port, listen_backlog):
         # Initialize server socket
@@ -14,13 +15,13 @@ class Server:
 
     def graceful_shutdown(self, signum, frame):
         self.running = False
-        logging.info("Closing server socket")
+        logging.info("action: shutdown | result: in_progress")
         self._server_socket.close()
-        logging.info("There are "+str(len(self._client_sockets))+" open client sockets")
-        for addr in self._client_sockets:
-            print("Closing connection to" + str(addr))
-            self._client_sockets[addr].close()
-        
+        if len(self._client_sockets) > 0: 
+            for addr in self._client_sockets:
+                print("action: shutdown - closing client socket " + str(addr))
+                self._client_sockets[addr].close()
+        logging.info("action: shutdown | result: success")
 
     def run(self):
         """
@@ -33,7 +34,8 @@ class Server:
         signal.signal(signal.SIGTERM, self.graceful_shutdown)
         while self.running:
             try:
-                client_sock, addr = self.__accept_new_connection()
+                client_sock = self.__accept_new_connection()
+                addr = client_sock.getpeername()
                 self._client_sockets[addr] = client_sock
                 self.__handle_client_connection(client_sock)
                 self._client_sockets.pop(addr)
@@ -49,13 +51,14 @@ class Server:
         client socket will also be closed
         """
         try:
-            # TODO: Modify the receive to avoid short-reads
-            msg = client_sock.recv(1024).rstrip().decode('utf-8')
+            agency, firstname, lastname, dni,birthdate, number = messages.read_msg(client_sock)
+            msg = agency + " " + firstname + " " +  lastname + " " + dni + " " +  birthdate + " " +  number
             addr = client_sock.getpeername()
             logging.info(f'action: receive_message | result: success | ip: {addr[0]} | msg: {msg}')
+            store_bets([Bet(agency,firstname,lastname,dni, birthdate, number)])
             # TODO: Modify the send to avoid short-writes
-            client_sock.send("{}\n".format(msg).encode('utf-8'))
-        except OSError as e:
+            client_sock.send("{}\n".format("OK").encode('utf-8'))
+        except OSError or ValueError as e:
             logging.error("action: receive_message | result: fail | error: {e}")
         finally:
             client_sock.close()
@@ -72,5 +75,5 @@ class Server:
         logging.info('action: accept_connections | result: in_progress')
         c, addr = self._server_socket.accept()
         logging.info(f'action: accept_connections | result: success | ip: {addr[0]}')
-        return c, addr
+        return c
         

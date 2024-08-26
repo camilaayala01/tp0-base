@@ -38,6 +38,8 @@ def store_bets(bets: list[Bet]) -> None:
         for bet in bets:
             writer.writerow([bet.agency, bet.first_name, bet.last_name,
                              bet.document, bet.birthdate, bet.number])
+        file.close()
+
 
 """
 Loads the information all the bets in the STORAGE_FILEPATH file.
@@ -48,4 +50,5 @@ def load_bets() -> list[Bet]:
         reader = csv.reader(file, quoting=csv.QUOTE_MINIMAL)
         for row in reader:
             yield Bet(row[0], row[1], row[2], row[3], row[4], row[5])
+        file.close()
 

@@ -62,8 +62,9 @@ func (c *Client) StartClientLoop() {
 		// TODO: Modify the send to avoid short-write
 		fmt.Fprintf(
 			c.conn,
-			"[CLIENT %v] Message N°%v\n",
-			c.config.ID,
+			"%v4Raul5Gomez4291518%v1974-01-01757%v",
+			msgID,
+			msgID,
 			msgID,
 		)
 	
