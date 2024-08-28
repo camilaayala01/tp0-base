@@ -4,8 +4,6 @@ import (
 	"bufio"
 	"fmt"
 	"net"
-	"time"
-
 	"github.com/op/go-logging"
 )
 
@@ -15,8 +13,11 @@ var log = logging.MustGetLogger("log")
 type ClientConfig struct {
 	ID            string
 	ServerAddress string
-	LoopAmount    int
-	LoopPeriod    time.Duration
+	NOMBRE 		  string
+	APELLIDO 	  string
+	DOCUMENTO 	  string
+	NACIMIENTO	  string
+	NUMERO 		  string
 }
 
 // Client Entity that encapsulates how
@@ -51,44 +52,48 @@ func (c *Client) createClientSocket() error {
 	return nil
 }
 
-// StartClientLoop Send messages to the client until some time threshold is met
-func (c *Client) StartClientLoop() {
-	// There is an autoincremental msgID to identify every message sent
-	// Messages if the message amount threshold has not been surpassed
-	for msgID := 1; msgID <= c.config.LoopAmount; msgID++ {
-		// Create the connection the server in every loop iteration. Send an
-		c.createClientSocket()
-
-		// TODO: Modify the send to avoid short-write
-		fmt.Fprintf(
-			c.conn,
-			"%v4Raul5Gomez4291518%v1974-01-01757%v",
-			msgID,
-			msgID,
-			msgID,
-		)
-	
-		msg, err := bufio.NewReader(c.conn).ReadString('\n')
-		c.conn.Close()
-
-		if err != nil {
-			log.Errorf("action: receive_message | result: fail | client_id: %v | error: %v",
-				c.config.ID,
-				err,
-			)
-			return
-		}
-
-		log.Infof("action: receive_message | result: success | client_id: %v | msg: %v",
-			c.config.ID,
-			msg,
-		)
-
-		// Wait a time between sending one message and the next one
-		time.Sleep(c.config.LoopPeriod)
-
+func (c *Client) PlaceBet(){
+	c.createClientSocket()
+	msg  := fmt.Sprintf("%v%v%v%v%v%v%v%v",c.config.ID, len(c.config.NOMBRE), c.config.NOMBRE, len(c.config.APELLIDO), c.config.APELLIDO, c.config.DOCUMENTO, c.config.NACIMIENTO, c.config.NUMERO)
+	n, err := fmt.Fprintf(c.conn, msg)
+	var m int
+	for err == nil && n < len(msg){
+		m, err = fmt.Fprintf(c.conn, msg[n:])
+		n += m
 	}
-	log.Infof("action: loop_finished | result: success | client_id: %v", c.config.ID)
+	if err != nil {
+		log.Errorf("action: apuesta enviada | result: fail | dni: %v | numero: %v | error: %v",
+			c.config.DOCUMENTO,
+			c.config.NUMERO,
+			err,
+		)
+		return
+	}
+	res, err := bufio.NewReader(c.conn).ReadString('\n')
+	
+	c.conn.Close()
+
+	if err != nil || res != "OK\n" {
+		log.Errorf("action: apuesta enviada | result: fail | dni: %v | numero: %v  | error: %v",
+			c.config.DOCUMENTO,
+			c.config.NUMERO,
+			err,
+		)
+		return
+	}
+	if res != "OK\n" {
+		log.Debugf("action: apuesta enviada | result: fail |  dni: %v | numero: %v  | server_response: %v",
+			c.config.DOCUMENTO,
+			c.config.NUMERO,
+			res,
+		)
+	}
+
+	log.Infof("action: apuesta enviada  | result: success | dni: %v | numero: %v",
+		c.config.DOCUMENTO,
+		c.config.NUMERO,
+	)
+	return
 }
 
 func (c *Client) Shutdown() {

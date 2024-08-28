@@ -28,7 +28,7 @@ def main():
             client_count = int(sys.argv[2])
             for i in range(1, client_count + 1):
                 try:
-                    checked_write(fp, "  client"+ str(i) +":\n    container_name: client"+ str(i) +"\n    image: client:latest\n    entrypoint: /client\n    environment:\n      - CLI_ID="+ str(i) + "\n      - CLI_LOG_LEVEL=DEBUG\n    networks:\n      - testing_net\n    depends_on:\n      - server\n\n    volumes:\n      - ./client/config.yaml:/config.yaml\n\n")
+                    checked_write(fp, "  client"+ str(i) +":\n    container_name: client"+ str(i) +"\n    image: client:latest\n    entrypoint: /client\n    environment:\n      - CLI_ID="+ str(i) + "\n      - CLI_LOG_LEVEL=DEBUG\n      - CLI_NOMBRE=\n      - CLI_APELLIDO=\n      - CLI_DOCUMENTO=\n      - CLI_NACIMIENTO=\n      - CLI_NUMERO=\n    networks:\n      - testing_net\n    depends_on:\n      - server\n\n    volumes:\n      - ./client/config.yaml:/config.yaml\n\n")
                 except writeErr:
                     return -1
             try:
@@ -39,3 +39,4 @@ def main():
 if __name__ == "__main__":
     main()
     
+""

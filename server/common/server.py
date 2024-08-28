@@ -51,15 +51,14 @@ class Server:
         client socket will also be closed
         """
         try:
-            agency, firstname, lastname, dni,birthdate, number = messages.read_msg(client_sock)
-            msg = agency + " " + firstname + " " +  lastname + " " + dni + " " +  birthdate + " " +  number
+            agency, name, lastname, dni,birthdate, number = messages.receive_bet(client_sock)
             addr = client_sock.getpeername()
-            logging.info(f'action: receive_message | result: success | ip: {addr[0]} | msg: {msg}')
-            store_bets([Bet(agency,firstname,lastname,dni, birthdate, number)])
-            # TODO: Modify the send to avoid short-writes
-            client_sock.send("{}\n".format("OK").encode('utf-8'))
-        except OSError or ValueError as e:
-            logging.error("action: receive_message | result: fail | error: {e}")
+            logging.debug(f'action: receive_message | result: success | ip: {addr[0]} | name: {name}')
+            store_bets([Bet(agency,name,lastname,dni, birthdate, number)])
+            logging.info(f"action: apuesta_almacenada | result: success | dni: {dni} | numero: {number}")
+            messages.confirm_bet(client_sock, "OK\n")
+        except OSError or ValueError as e :
+            logging.error("action: receive_message | result: fail | error: {e}", e)
         finally:
             client_sock.close()
 
