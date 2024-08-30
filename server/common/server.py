@@ -38,6 +38,7 @@ class Server:
                 addr = client_sock.getpeername()
                 self._client_sockets[addr] = client_sock
                 self.__handle_client_connection(client_sock)
+                client_sock.close()
                 self._client_sockets.pop(addr)
             except OSError as e:
                 if self.running:
@@ -57,9 +58,12 @@ class Server:
             store_bets([Bet(agency,name,lastname,dni, birthdate, number)])
             logging.info(f"action: apuesta_almacenada | result: success | dni: {dni} | numero: {number}")
             send_msg(client_sock, "OK\n")
-        except OSError or ValueError as e :
+        except ValueError as e:
             logging.error("action: receive_message | result: fail | error: {e}", e)
-            send_msg(client_sock, "ERROR\n")
+            send_msg(client_sock, "ERROR " + str(e) + "\n")
+        except OSError as e :
+            logging.error("action: receive_message | result: fail | error: {e}", e)
+            send_msg(client_sock, "ERROR " + str(e) + "\n")
         finally:
             client_sock.close()
 

@@ -4,7 +4,10 @@ import (
 	"net"
 	"fmt"
 	"bytes"
+	"bufio"
 )
+const EXPECTED_REPLY string = "OK\n"
+const DELIMITER byte = '\n'
 func BuildMsg(fields []string)[]byte{
 	buf := new(bytes.Buffer)
 	for _, field := range fields {
@@ -29,5 +32,12 @@ func SendMsg(sock net.Conn, fields []string) error{
 	return err
 }
 
+func receiveServerResponse(sock net.Conn)error{
+	response, err := bufio.NewReader(sock).ReadString(DELIMITER)
+	if response != EXPECTED_REPLY{
+		return fmt.Errorf("Server response was: %v", response)
+	}
+	return err
+}
 	
 	

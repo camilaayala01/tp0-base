@@ -1,7 +1,6 @@
 package common
 
 import (
-	"bufio"
 	"net"
 	"github.com/op/go-logging"
 )
@@ -46,40 +45,36 @@ func (c *Client) createClientSocket() error {
 			c.config.ID,
 			err,
 		)
+		return err
 	}
 	c.conn = conn
 	return nil
 }
 
 func (c *Client) PlaceBet(){
-	c.createClientSocket()
-	res:= SendMsg(c.conn,[]string{c.config.ID,c.config.NOMBRE,c.config.APELLIDO, c.config.DOCUMENTO, c.config.NACIMIENTO, c.config.NUMERO})
-	if  res != nil {
+	if c.createClientSocket() != nil{
+		return  
+	}
+	send_err:= SendMsg(c.conn,[]string{c.config.ID,c.config.NOMBRE,c.config.APELLIDO, c.config.DOCUMENTO, c.config.NACIMIENTO, c.config.NUMERO})
+	if  send_err != nil {
 		log.Errorf("action: apuesta enviada | result: fail | dni: %v | numero: %v | error: %v",
 			c.config.DOCUMENTO,
 			c.config.NUMERO,
-			res,
+			send_err,
 		)
 		return
 	}
-	response, err := bufio.NewReader(c.conn).ReadString('\n')
+	response_err := receiveServerResponse(c.conn)
 	
 	c.conn.Close()
 
-	if err != nil {
+	if response_err != nil {
 		log.Errorf("action: apuesta enviada | result: fail | dni: %v | numero: %v  | error: %v",
 			c.config.DOCUMENTO,
 			c.config.NUMERO,
-			err,
+			response_err,
 		)
 		return
-	}
-	if response != "OK\n" {
-		log.Debugf("action: apuesta enviada | result: fail |  dni: %v | numero: %v  | server_response: %v",
-			c.config.DOCUMENTO,
-			c.config.NUMERO,
-			res,
-		)
 	}
 
 	log.Infof("action: apuesta enviada  | result: success | dni: %v | numero: %v",
