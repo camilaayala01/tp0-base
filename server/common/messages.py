@@ -1,25 +1,21 @@
 import socket
 import string
-LEN_DELIMITER = "~"
+LEN_BYTES = 1
 END_CHARACTER = "\n"
+EXPECTED_MSG_FIELDS = 6
 def receive_length(socket: socket) -> int:
-    length = ""
-    while char_read := socket.recv(1).decode('utf-8') != "~":
-        length += char_read
-    return int(length)
+    buf = socket.recv(LEN_BYTES) 
+    while len(buf) < LEN_BYTES:
+        socket.recv(LEN_BYTES - len(buf)) 
+    return int.from_bytes(buf,'big')
 def receive_msg(socket: socket) -> list[str]:
     fields: list[str] = []
-    to_read = ""
-    while (char_read := socket.recv(1).decode('utf-8')) != "\n":
-        if char_read != "~":
-            to_read += char_read
-        else:
-            field_len = int(to_read)
-            to_read = ""
-            field = socket.recv(field_len).decode('utf-8')
-            while len(field.encode('utf-8')) < field_len:
-                field += socket.recv(field_len - len(field.encode('utf-8'))).decode('utf-8')
-            fields.append(field)
+    while len(fields) < EXPECTED_MSG_FIELDS:
+        field_len = receive_length(socket)
+        field = socket.recv(field_len).decode('utf-8')
+        while len(field.encode('utf-8')) < field_len:
+            field += socket.recv(field_len - len(field.encode('utf-8'))).decode('utf-8')
+        fields.append(field)
     return fields
 
 def encode_field(field) -> bytes:

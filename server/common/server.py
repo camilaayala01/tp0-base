@@ -59,6 +59,7 @@ class Server:
             send_msg(client_sock, "OK\n")
         except OSError or ValueError as e :
             logging.error("action: receive_message | result: fail | error: {e}", e)
+            send_msg(client_sock, "ERROR\n")
         finally:
             client_sock.close()
 
