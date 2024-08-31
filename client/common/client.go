@@ -57,7 +57,8 @@ func (c *Client) PlaceBet(){
 	}
 	send_err:= SendMsg(c.conn,[]string{c.config.ID,c.config.NOMBRE,c.config.APELLIDO, c.config.DOCUMENTO, c.config.NACIMIENTO, c.config.NUMERO})
 	if  send_err != nil {
-		log.Errorf("action: apuesta enviada | result: fail | dni: %v | numero: %v | error: %v",
+		c.conn.Close()
+		log.Criticalf("action: apuesta enviada | result: fail | dni: %v | numero: %v | error: %v",
 			c.config.DOCUMENTO,
 			c.config.NUMERO,
 			send_err,

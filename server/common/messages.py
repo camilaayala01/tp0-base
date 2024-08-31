@@ -5,6 +5,8 @@ END_CHARACTER = "\n"
 EXPECTED_MSG_FIELDS = 6
 def receive_length(socket: socket) -> int:
     buf = socket.recv(LEN_BYTES) 
+    if not buf:
+        raise OSError("Socket closed")
     while len(buf) < LEN_BYTES:
         socket.recv(LEN_BYTES - len(buf)) 
     return int.from_bytes(buf,'big')
