@@ -52,17 +52,17 @@ class Server:
         client socket will also be closed
         """
         try:
-            [agency, name, lastname, dni,birthdate, number] = receive_msg(client_sock)
+            [[agency, name, lastname, dni,birthdate, number]] = receive_msgs(client_sock,1)
             addr = client_sock.getpeername()
             logging.debug(f'action: receive_message | result: success | ip: {addr[0]} | name: {name}')
             store_bets([Bet(agency,name,lastname,dni, birthdate, number)])
             logging.info(f"action: apuesta_almacenada | result: success | dni: {dni} | numero: {number}")
-            send_msg(client_sock, "OK\n")
+            send_msg(client_sock, "OK")
         except OSError as e:
             logging.error("action: receive_message | result: fail | error: OsError " + str(e))
         except ValueError as e:
             logging.error("action: receive_message | result: fail | error:" +  str(e))
-            send_msg(client_sock, "ERROR " + str(e) + "\n")
+            send_msg(client_sock, "ERROR " + str(e))
         finally:
             client_sock.close()
 
