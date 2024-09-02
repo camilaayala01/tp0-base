@@ -1,6 +1,6 @@
 #!/bin/bash
 
-docker run --rm -it --network=tp0_testing_net --name=validator ubuntu:20.04 bash -c '
+docker run --rm  --network=tp0_testing_net --name=validator ubuntu:20.04 bash -c '
   apt-get update && apt-get install -y netcat &>/dev/null
 
   test_str="testing"
