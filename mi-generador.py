@@ -26,15 +26,16 @@ def main():
             except writeErr:
                 return -1
             client_count = int(sys.argv[2])
-            for i in range(1, client_count + 1):
+            if client_count != 0:
+                for i in range(1, client_count + 1):
+                    try:
+                        checked_write(fp, "  client"+ str(i) +":\n    container_name: client"+ str(i) +"\n    image: client:latest\n    entrypoint: /client\n    environment:\n      - CLI_ID="+ str(i) + "\n      - CLI_LOG_LEVEL=DEBUG\n    networks:\n      - testing_net\n    depends_on:\n      - server\n\n    volumes:\n      - ./client/config.yaml:/config.yaml\n\n")
+                    except writeErr:
+                        return -1
                 try:
-                    checked_write(fp, "  client"+ str(i) +":\n    container_name: client"+ str(i) +"\n    image: client:latest\n    entrypoint: /client\n    environment:\n      - CLI_ID="+ str(i) + "\n      - CLI_LOG_LEVEL=DEBUG\n    networks:\n      - testing_net\n    depends_on:\n      - server\n\n    volumes:\n      - ./client/config.yaml:/config.yaml\n\n")
+                    checked_write(fp,"networks:\n  testing_net:\n    ipam:\n      driver: default\n      config:\n        - subnet: 172.25.125.0/24\n")
                 except writeErr:
                     return -1
-            try:
-                checked_write(fp,"networks:\n  testing_net:\n    ipam:\n      driver: default\n      config:\n        - subnet: 172.25.125.0/24\n")
-            except writeErr:
-                return -1
             fp.close()  
 if __name__ == "__main__":
     main()
