@@ -92,7 +92,7 @@ func (c *Client) StartClientLoop() {
 }
 
 func (c *Client) Shutdown() {
-	log.Infof("action: shutting down | result: in progress | client_id: %v", c.config.ID)
+	log.Infof("action: shutting down | result: in_progress | client_id: %v", c.config.ID)
 	c.conn.Close()
 	log.Infof("action: shutting down | result: success | client_id: %v", c.config.ID)
 }

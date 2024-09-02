@@ -19,7 +19,7 @@ class Server:
         self._server_socket.close()
         if len(self._client_sockets) > 0: 
             for addr in self._client_sockets:
-                print("action: shutdown - closing client socket " + str(addr))
+                logging.debug("action: shutdown - closing client socket " + str(addr))
                 self._client_sockets[addr].close()
         logging.info("action: shutdown | result: success")
 
