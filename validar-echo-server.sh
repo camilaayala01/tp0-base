@@ -1,7 +1,7 @@
 #!/bin/bash
 
 docker run --rm  --network=tp0_testing_net --name=validator ubuntu:20.04 bash -c '
-  apt-get update && apt-get install -y netcat &>/dev/null
+  apt-get update &>/dev/null && apt-get install -y netcat &>/dev/null
 
   test_str="testing"
   err_str="action: test_echo_server | result: fail"
