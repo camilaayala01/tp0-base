@@ -112,7 +112,7 @@ func main() {
 		close(done)
 	}()
 	go func() {
-		client.PlaceBet()
+		client.ReadBets()
 		defer wg.Done()
 	}()
 	wg.Wait()

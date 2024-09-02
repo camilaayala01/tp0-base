@@ -3,9 +3,14 @@ package common
 import (
 	"net"
 	"github.com/op/go-logging"
+	"encoding/csv"
+	"fmt"
+	"io"
+	"os"
 )
 
 var log = logging.MustGetLogger("log")
+const FIELDS_TO_READ = 5
 
 // ClientConfig Configuration used by the client
 type ClientConfig struct {
@@ -46,7 +51,30 @@ func (c *Client) createClientSocket() error {
 	c.conn = conn
 	return nil
 }
+func (c *Client) ReadBets(){
+	file, err := os.Open("betfile.csv") 
+      
+    if err != nil { 
+        log.Fatal("Error while reading the file", err) 
+    } 
+  
+    defer file.Close() 
+  
+    reader := csv.NewReader(file)
+	reader.FieldsPerRecord = FIELDS_TO_READ
+	for i := 0; i < 10; i++ {
+		record, err := reader.Read()
+		if err == io.EOF {
+			break
+		}
+		if err != nil {
+			log.Fatal(err)
+		}
 
+		fmt.Println(record)
+	}
+
+}
 
 func (c *Client) PlaceBet(){
 	if c.createClientSocket() != nil{
