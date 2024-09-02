@@ -4,7 +4,6 @@ import (
 	"net"
 	"github.com/op/go-logging"
 	"encoding/csv"
-	"fmt"
 	"io"
 	"os"
 )
@@ -51,57 +50,75 @@ func (c *Client) createClientSocket() error {
 	c.conn = conn
 	return nil
 }
-func (c *Client) ReadBets(){
+func BuildBatch(c *Client, reader *csv.Reader)([][]string,error){
+	var batch [][]string 
+	for i := 0; i < c.config.MaxBatchSize; i++ {
+		record, err := reader.Read()
+		if err != nil {
+			return batch, err
+		}
+		bet := append([]string{c.config.ID}, record...)
+		batch = append(batch,bet)
+	}
+	return batch, nil
+
+}
+func (c *Client) PlaceBets(){
 	file, err := os.Open("betfile.csv") 
       
     if err != nil { 
-        log.Fatal("Error while reading the file", err) 
+        log.Criticalf("Error while reading the file %v", err) 
     } 
   
     defer file.Close() 
   
     reader := csv.NewReader(file)
 	reader.FieldsPerRecord = FIELDS_TO_READ
-	for i := 0; i < 10; i++ {
-		record, err := reader.Read()
-		if err == io.EOF {
+	for{
+		batch, err := BuildBatch(c, reader)
+		log.Debugf("action: build batch  | result: batch de size %v", len(batch))
+		if len(batch) > 0 {
+			if c.createClientSocket() != nil{
+				return  
+			}
+			send_err := SendBatch(c.conn, batch)
+			if  send_err != nil {
+				c.conn.Close()
+				log.Criticalf("action: apuesta enviada | result: fail | error: %v",
+					send_err,
+				)
+				return
+			}
+			log.Infof("action: apuestas enviadas  | result: in_progress | cantidad: %v", len(batch))
+			response, response_err := receiveServerResponse(c.conn)
+			c.conn.Close()
+			if response_err != nil {
+				log.Errorf("action: apuestas enviadas | result: fail | error: %v",
+					response_err,
+				)
+				return
+			}
+			
+			if response !=  len(batch) {
+				log.Errorf("action: apuestas enviadas | result: fail | enviadas: %v, recibidas: %v",
+					len(batch), 
+					response,
+				)
+				return
+			}
+
+			log.Infof("action: apuestas enviadas  | result: success | cantidad: %v", response )
+		}
+		if err == io.EOF{
 			break
 		}
 		if err != nil {
-			log.Fatal(err)
+			log.Criticalf("Error while reading records %v", err)
+			return
 		}
-
-		fmt.Println(record)
 	}
-
 }
 
-func (c *Client) PlaceBet(){
-	if c.createClientSocket() != nil{
-		return  
-	}
-	send_err:= SendMsg(c.conn,[]string{})
-	if  send_err != nil {
-		c.conn.Close()
-		log.Criticalf("action: apuesta enviada | result: fail | error: %v",
-			send_err,
-		)
-		return
-	}
-	response_err := receiveServerResponse(c.conn)
-	
-	c.conn.Close()
-
-	if response_err != nil {
-		log.Errorf("action: apuesta enviada | result: fail  | error: %v",
-			response_err,
-		)
-		return
-	}
-
-	log.Infof("action: apuesta enviada  | result: success")
-	return
-}
 
 func (c *Client) Shutdown() {
 	log.Infof("action: shutting down | result: in progress | client_id: %v", c.config.ID)

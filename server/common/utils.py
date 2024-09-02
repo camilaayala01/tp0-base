@@ -54,3 +54,6 @@ def load_bets() -> list[Bet]:
             yield Bet(row[0], row[1], row[2], row[3], row[4], row[5])
         file.close()
 
+def build_bets(betmsgs: list[list[str,str, str, str, str, str]]) -> list[Bet]:
+    return map(lambda betmsg: Bet(betmsg[0], betmsg[1], betmsg[2], betmsg[3], betmsg[4], betmsg[5]), betmsgs)
+
