@@ -10,12 +10,8 @@ var log = logging.MustGetLogger("log")
 // ClientConfig Configuration used by the client
 type ClientConfig struct {
 	ID            string
+	MaxBatchSize     int
 	ServerAddress string
-	NOMBRE 		  string
-	APELLIDO 	  string
-	DOCUMENTO 	  string
-	NACIMIENTO	  string
-	NUMERO 		  string
 }
 
 // Client Entity that encapsulates how
@@ -55,12 +51,10 @@ func (c *Client) PlaceBet(){
 	if c.createClientSocket() != nil{
 		return  
 	}
-	send_err:= SendMsg(c.conn,[]string{c.config.ID,c.config.NOMBRE,c.config.APELLIDO, c.config.DOCUMENTO, c.config.NACIMIENTO, c.config.NUMERO})
+	send_err:= SendMsg(c.conn,[]string{})
 	if  send_err != nil {
 		c.conn.Close()
-		log.Criticalf("action: apuesta enviada | result: fail | dni: %v | numero: %v | error: %v",
-			c.config.DOCUMENTO,
-			c.config.NUMERO,
+		log.Criticalf("action: apuesta enviada | result: fail | error: %v",
 			send_err,
 		)
 		return
@@ -70,18 +64,13 @@ func (c *Client) PlaceBet(){
 	c.conn.Close()
 
 	if response_err != nil {
-		log.Errorf("action: apuesta enviada | result: fail | dni: %v | numero: %v  | error: %v",
-			c.config.DOCUMENTO,
-			c.config.NUMERO,
+		log.Errorf("action: apuesta enviada | result: fail  | error: %v",
 			response_err,
 		)
 		return
 	}
 
-	log.Infof("action: apuesta enviada  | result: success | dni: %v | numero: %v",
-		c.config.DOCUMENTO,
-		c.config.NUMERO,
-	)
+	log.Infof("action: apuesta enviada  | result: success")
 	return
 }
 
