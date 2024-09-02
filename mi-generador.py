@@ -22,7 +22,7 @@ def main():
     else:
         with fp:
             try:
-                checked_write(fp,"name: tp0\nservices:\n  server:\n    container_name: server\n    image: server:latest\n    entrypoint: python3 /main.py\n    environment:\n      - PYTHONUNBUFFERED=1\n      - LOGGING_LEVEL=DEBUG\n    networks:\n      - testing_net\n\n    volumes:\n    - ./server/config.ini:/config.ini")
+                checked_write(fp,"name: tp0\nservices:\n  server:\n    container_name: server\n    image: server:latest\n    entrypoint: python3 /main.py\n    environment:\n      - PYTHONUNBUFFERED=1\n    networks:\n      - testing_net\n    volumes:\n    - ./server/config.ini:/config.ini\n")
             except writeErr:
                 return -1
             client_count = int(sys.argv[2])
@@ -32,10 +32,10 @@ def main():
                         checked_write(fp, "  client"+ str(i) +":\n    container_name: client"+ str(i) +"\n    image: client:latest\n    entrypoint: /client\n    environment:\n      - CLI_ID="+ str(i) + "\n      - CLI_LOG_LEVEL=DEBUG\n    networks:\n      - testing_net\n    depends_on:\n      - server\n\n    volumes:\n      - ./client/config.yaml:/config.yaml\n\n")
                     except writeErr:
                         return -1
-                try:
-                    checked_write(fp,"networks:\n  testing_net:\n    ipam:\n      driver: default\n      config:\n        - subnet: 172.25.125.0/24\n")
-                except writeErr:
-                    return -1
+            try:
+                checked_write(fp,"networks:\n  testing_net:\n    ipam:\n      driver: default\n      config:\n        - subnet: 172.25.125.0/24\n")
+            except writeErr:
+                 return -1
             fp.close()  
 if __name__ == "__main__":
     main()
