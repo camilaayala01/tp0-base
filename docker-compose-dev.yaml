@@ -6,30 +6,20 @@ services:
     entrypoint: python3 /main.py
     environment:
       - PYTHONUNBUFFERED=1
-      - LOGGING_LEVEL=DEBUG
     networks:
       - testing_net
-
     volumes:
     - ./server/config.ini:/config.ini
-
   client1:
     container_name: client1
     image: client:latest
     entrypoint: /client
     environment:
       - CLI_ID=1
-      - CLI_LOG_LEVEL=DEBUG
-      - CLI_NOMBRE=CAMILA
-      - CLI_APELLIDO=AYALA
-      - CLI_DOCUMENTO=42915189
-      - CLI_NACIMIENTO=2001-01-15
-      - CLI_NUMERO=7574
     networks:
       - testing_net
     depends_on:
       - server
-
     volumes:
       - ./client/config.yaml:/config.yaml
 
@@ -39,17 +29,10 @@ services:
     entrypoint: /client
     environment:
       - CLI_ID=2
-      - CLI_LOG_LEVEL=DEBUG
-      - CLI_NOMBRE=NOAH
-      - CLI_APELLIDO=MASRI
-      - CLI_DOCUMENTO=42915188
-      - CLI_NACIMIENTO=2001-12-19
-      - CLI_NUMERO=7573
     networks:
       - testing_net
     depends_on:
       - server
-
     volumes:
       - ./client/config.yaml:/config.yaml
 
@@ -59,17 +42,10 @@ services:
     entrypoint: /client
     environment:
       - CLI_ID=3
-      - CLI_LOG_LEVEL=DEBUG
-      - CLI_NOMBRE=FRANCISCO
-      - CLI_APELLIDO=LABOLLITA
-      - CLI_DOCUMENTO=42816339
-      - CLI_NACIMIENTO=2000-07-10
-      - CLI_NUMERO=7440
     networks:
       - testing_net
     depends_on:
       - server
-
     volumes:
       - ./client/config.yaml:/config.yaml
 
@@ -79,17 +55,23 @@ services:
     entrypoint: /client
     environment:
       - CLI_ID=4
-      - CLI_LOG_LEVEL=DEBUG
-      - CLI_NOMBRE=TAYLOR
-      - CLI_APELLIDO=SWIFT
-      - CLI_DOCUMENTO=13198913
-      - CLI_NACIMIENTO=1989-12-13
-      - CLI_NUMERO=1331
     networks:
       - testing_net
     depends_on:
       - server
+    volumes:
+      - ./client/config.yaml:/config.yaml
 
+  client5:
+    container_name: client5
+    image: client:latest
+    entrypoint: /client
+    environment:
+      - CLI_ID=5
+    networks:
+      - testing_net
+    depends_on:
+      - server
     volumes:
       - ./client/config.yaml:/config.yaml
 
