@@ -47,6 +47,7 @@ func (c *Client) createClientSocket() error {
 	return nil
 }
 
+
 func (c *Client) PlaceBet(){
 	if c.createClientSocket() != nil{
 		return  

@@ -29,7 +29,7 @@ def main():
             if client_count > 0:
                 for i in range(1, client_count + 1):
                     try:
-                        checked_write(fp, "  client"+ str(i) +":\n    container_name: client"+ str(i) +"\n    image: client:latest\n    entrypoint: /client\n    environment:\n      - CLI_ID="+ str(i) + "\n    networks:\n      - testing_net\n    depends_on:\n      - server\n    volumes:\n      - ./client/config.yaml:/config.yaml\n\n")
+                        checked_write(fp, "  client"+ str(i) +":\n    container_name: client"+ str(i) +"\n    image: client:latest\n    entrypoint: /client\n    environment:\n      - CLI_ID="+ str(i) + "\n    networks:\n      - testing_net\n    depends_on:\n      - server\n    volumes:\n      - ./client/config.yaml:/config.yaml\n      - ./.data/agency-"+ str(i) +".csv:/betfile.csv\n\n")
                     except writeErr:
                         return -1
             try:
