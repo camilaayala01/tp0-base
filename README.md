@@ -26,3 +26,5 @@ Siendo estos los valores que tome como maximos en cada campo por lo cual cada pa
 1 byte longitud agencia + 3 bytes de numero de agencia + 1 byte de longitud de nombre + 23 bytes de nombre + 1 byte de longitud de apellido + 10 bytes de apellido +
 10 bytes de nacimiento + 8 bytes de documento + 4 bytes de numero
 El numero de agencia se envia como string asi que 3 bytes le permitiria tener como maximo 999. 
+
+Hay 78.697 apuestas

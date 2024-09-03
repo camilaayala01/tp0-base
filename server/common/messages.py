@@ -26,25 +26,33 @@ def receive_msg(buffer: bytes, socket: socket)-> tuple[list[str], bytes]:
         buffer = buffer[read:len(buffer)]
         more_buffer = socket.recv(BUFFER_SIZE)
         if not more_buffer:
+            print("Se cerro el socket, me quedo sin terminar: " + str(msg))
             return None, None
         buffer += more_buffer
         read, more_msg = parse_msg(buffer, EXPECTED_MSG_FIELDS - len(msg))
         msg += more_msg
-    if read < len(buffer):
-        return msg, buffer[read:len(buffer)]
-    return msg, bytes()
+    return msg, buffer[read:len(buffer)]
 
 def receive_msgs(socket:socket)-> tuple[list[list[str]], bool]:
     packets: list[list[str]] = []
-    buffer: bytes = socket.recv(BUFFER_SIZE)
-    while True:
-        packet, buffer = receive_msg(buffer, socket)
-        if not packet:
+    error: bool = False
+    batch_len_bytes: bytes = socket.recv(LEN_BYTES)
+    if not batch_len_bytes:
+        return packets, True
+    batch_len = int.from_bytes(batch_len_bytes, 'big')
+    while len(packets) < batch_len and not error:
+        buffer: bytes = socket.recv(BUFFER_SIZE)
+        if not buffer:
             return packets, True
-        packets.append(packet)
-        if len(buffer) == 0:
-            break
-    return packets, False
+        while True:
+            if len(buffer) == 0:
+                break
+            packet, buffer = receive_msg(buffer, socket)
+            if not packet:
+                error = True
+                break
+            packets.append(packet)   
+    return packets, error
 
 def encode_field(field) -> bytes:
     return field.encode('utf-8') + "\n".encode('utf-8')

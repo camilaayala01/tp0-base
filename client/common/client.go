@@ -100,9 +100,10 @@ func (c *Client) PlaceBets(){
 			}
 			
 			if response !=  len(batch) {
-				log.Errorf("action: apuestas enviadas | result: fail | enviadas: %v, recibidas: %v",
+				log.Errorf("action: apuestas enviadas | result: fail | enviadas: %v, recibidas: %v, ultimo registro de batch %v",
 					len(batch), 
 					response,
+					batch[len(batch) -1],
 				)
 				return
 			}
