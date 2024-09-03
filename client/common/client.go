@@ -6,6 +6,7 @@ import (
 	"encoding/csv"
 	"io"
 	"os"
+	"time"
 )
 
 var log = logging.MustGetLogger("log")
@@ -81,7 +82,7 @@ func (c *Client) PlaceBets(){
 			if c.createClientSocket() != nil{
 				return  
 			}
-			send_err := SendBatch(c.conn, batch)
+			send_err := SendBatch(c.conn, batch, c.config.ID)
 			if  send_err != nil {
 				c.conn.Close()
 				log.Criticalf("action: apuesta enviada | result: fail | error: %v",
@@ -121,10 +122,23 @@ func (c *Client) PlaceBets(){
 	if c.createClientSocket() != nil{
 		return  
 	}
-	NotifyServer(c.conn)
+	NotifyServer(c.conn, c.config.ID)
+	log.Infof("action: notify")
 	c.conn.Close()
 
-
+	for{
+		if c.createClientSocket() != nil{
+			return  
+		}
+		res, err := AskForResults(c.conn, c.config.ID)
+		c.conn.Close()
+		if err == nil{
+			log.Infof("action: consulta_ganadores | result: success | cant_ganadores: %v", len(res))
+			break
+		}
+		log.Infof("action: consulta_ganadores | result: fail")
+		time.Sleep(5 * time.Second)
+	}
 }
 
 

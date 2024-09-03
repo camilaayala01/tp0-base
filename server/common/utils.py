@@ -1,6 +1,5 @@
 import csv
 import datetime
-import time
 
 
 """ Bets storage location. """
@@ -56,4 +55,7 @@ def load_bets() -> list[Bet]:
 
 def build_bets(betmsgs: list[list[str,str, str, str, str, str]]) -> list[Bet]:
     return map(lambda betmsg: Bet(betmsg[0], betmsg[1], betmsg[2], betmsg[3], betmsg[4], betmsg[5]), betmsgs)
+
+def get_winners_for_agency(agency_id: int) -> list[str]:
+    return list(map(lambda x: x.document, filter(lambda bet: bet.agency == agency_id and has_won(bet), load_bets())))
 
