@@ -118,6 +118,13 @@ func (c *Client) PlaceBets(){
 			return
 		}
 	}
+	if c.createClientSocket() != nil{
+		return  
+	}
+	NotifyServer(c.conn)
+	c.conn.Close()
+
+
 }
 
 

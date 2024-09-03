@@ -11,6 +11,18 @@ import (
 const EXPECTED_REPLY string = "OK\n"
 const DELIMITER byte = '\n'
 const UINT8_MAX = 255
+const (
+	PLACE_BETS = iota
+	NOTIFY 
+	REQ_RESULTS
+)
+func GetMsgType(msg_type: int){
+	buf := new(bytes.Buffer)
+	if err := binary.Write(buf, binary.BigEndian, uint8(msg_type)); err != nil {
+		return nil, err
+	}
+	return buf.Bytes(), nil
+}
 func BuildMsg(fields []string)([]byte,error){
 	buf := new(bytes.Buffer)
 	for _, field := range fields {
@@ -37,8 +49,14 @@ func GetBatchLen(batch_len int)([]byte,error){
 	}
 	return buf.Bytes(), nil
 }
+
 func SendBatch(sock net.Conn, batch [][]string) error{
 	var buffer []byte
+	msg_type, msg_type_err := GetMsgType(PLACE_BETS)
+	if msg_type_err != nil{
+		return msg_type_err
+	}
+	buffer = append(buffer, msg_type...)
 	batch_len, batch_len_err := GetBatchLen(len(batch))
 	if batch_len_err != nil{
 		return batch_len_err
@@ -51,24 +69,25 @@ func SendBatch(sock net.Conn, batch [][]string) error{
 		}
 		buffer = append(buffer,bet_msg...)
 	}
-	n, err := sock.Write(buffer)
-	var m int
-	for err == nil && n < len(buffer) {
-		m, err = sock.Write(buffer[n:len(buffer)])
-		n += m
-	}
-	return err
+	return SendMsg(sock, buffer)
 }
 
-func SendMsg(sock net.Conn, fields []string) error{
-	msg, build_err  := BuildMsg(fields)
-	if build_err != nil{
-		return build_err
+func NotifyServer(sock net.Conn) error{
+	var buffer []byte
+	msg_type, msg_type_err := GetMsgType(NOTIFY)
+	if msg_type_err != nil{
+		return msg_type_err
 	}
-	n, err := sock.Write(msg)
+	buffer = append(buffer, msg_type...)
+	return SendMsg(sock, buffer)
+}
+
+//func RequestResults(sock net.Conn)
+func SendMsg(sock net.Conn, msg []byte)error{
+	n, err := sock.Write(buffer)
 	var m int
 	for err == nil && n < len(msg) {
-		m, err = sock.Write(msg[m:len(msg)])
+		m, err = sock.Write(msg[n:len(msg)])
 		n += m
 	}
 	return err
@@ -81,7 +100,6 @@ func receiveServerResponse(sock net.Conn)(int,error){
 	}
 	i, err := strconv.Atoi(strings.TrimRight(response, " \t\r\n"))
 	return i, err
-	
 }
 	
 	
