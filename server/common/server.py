@@ -21,14 +21,13 @@ class Server:
         self._socket_queue =  queue.Queue()
         self._threads = []
         self._running = True
-        self._read_storage_lock = Lock() # que es mas correcto, tenerlo aca o en stack y lo paso como arg a funciones? 
+        self._read_storage_lock = Lock()
         self._write_storage_lock = Lock()
         self._ready_agencies_count_cv = Condition()
         self._ready_agencies_count = 0
 
     def graceful_shutdown(self, signum, frame):
         self._running = False
-        print("running es" ,self._running)
         logging.info("action: shutdown | result: in_progress")
         self._server_socket.close()
         logging.debug("closed server socket")
@@ -69,7 +68,7 @@ class Server:
         bet_msgs, err = receive_bets(client_sock)
         if err:
             logging.error("action: apuesta_recibida | result: fail | cantidad: " +  str(len(bet_msgs)))
-            send_error_msg(client_sock, "ERROR: unexpected format in bet number " + str(len(bet_msgs) + 1)) ## cambiar
+            send_error_msg(client_sock, "ERROR: unexpected format in bet number " + str(len(bet_msgs) + 1)) 
         bets = build_bets(bet_msgs)
         with self._write_storage_lock:
             store_bets(bets)
