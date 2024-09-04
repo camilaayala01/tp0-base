@@ -1,39 +1,38 @@
 import socket
 import logging
 import signal
-from time import sleep
 from common.messages import *
 from common.utils import *
-from enum import Enum
 from threading import Lock, Thread, Condition
 import queue
-class MsgType(Enum):
-    PLACE_BET = 0
-    NOTIFY = 1
-    REQ_RESPONSE = 2
+
 AGENCY_COUNT = 5
+class SyncTools:
+    def __init__(self):
+        self._socket_queue =  queue.Queue()
+        self._read_storage_lock = Lock()
+        self._write_storage_lock = Lock()
+        self._ready_agencies_count_cv = Condition()
+        
 class Server:
     def __init__(self, port, listen_backlog):
         # Initialize server socket
         self._server_socket = socket.socket(socket.AF_INET, socket.SOCK_STREAM)
         self._server_socket.bind(('', port))
         self._server_socket.listen(listen_backlog)
-        self._socket_queue =  queue.Queue()
-        self._threads = []
         self._running = True
-        self._read_storage_lock = Lock()
-        self._write_storage_lock = Lock()
-        self._ready_agencies_count_cv = Condition()
         self._ready_agencies_count = 0
+        self._threads = []
+        self._sync_tools = SyncTools()
 
     def graceful_shutdown(self, signum, frame):
         self._running = False
         logging.info("action: shutdown | result: in_progress")
         self._server_socket.close()
         logging.debug("closed server socket")
-        self._socket_queue.join() 
+        self._sync_tools._socket_queue.join() 
         for _ in range(AGENCY_COUNT):
-            self._socket_queue.put(None)
+            self._sync_tools._socket_queue.put(None)
         for thread in self._threads:
             thread.join()
         logging.info("action: shutdown | result: success")
@@ -59,62 +58,53 @@ class Server:
         while self._running:
             try:
                 client_sock = self.__accept_new_connection()
-                self._socket_queue.put(client_sock)
+                self._sync_tools._socket_queue.put(client_sock)
             except OSError as e:
                 if self._running:
-                    logging.error("action: accept_connections | result: fail | error: {}",  str(e))
+                    logging.error("action: accept_connections | result: fail | error:" +  str(e))
       
     def ___handle_place_bet(self, client_sock: socket):
         bet_msgs, err = receive_bets(client_sock)
         if err:
-            logging.error("action: apuesta_recibida | result: fail | cantidad: " +  str(len(bet_msgs)))
-            send_error_msg(client_sock, "ERROR: unexpected format in bet number " + str(len(bet_msgs) + 1)) 
+            logging.error("action: apuesta_recibida | result: fail | cantidad: " + str(len(bet_msgs)))
+            send_msg(client_sock, MsgType.SERVER_BET_ERR, str(len(bet_msgs))) 
         bets = build_bets(bet_msgs)
-        with self._write_storage_lock:
+        with self._sync_tools._write_storage_lock:
             store_bets(bets)
-        logging.debug(f"action: apuesta_almacenada | result: success | cantidad: " +  str(len(bet_msgs)))
-        send_batch_size(client_sock, str(len(bet_msgs)))
+        logging.debug(f"action: apuesta_recibida | result: success | cantidad: {len(bet_msgs)}")
+        send_msg(client_sock, MsgType.SERVER_BET_OK, str(len(bet_msgs)))
     
-    def __handle_send_results(self, client_sock: socket, agency_id: int):
-        agency_winners = get_winners_for_agency(agency_id, self._read_storage_lock)
-        if len(agency_winners) == 0:
-            send_no_winners(client_sock)
-        send_winners(client_sock, agency_winners)
-    
-    def __handle_response_request(self, client_sock: socket, agency_id: int):
-        logging.info(f"action: request for result | result: in progress | agencia: " +  str(agency_id))
-        with self._ready_agencies_count_cv:
-            while not self._ready_agencies_count == AGENCY_COUNT and self._running: 
-                self._ready_agencies_count_cv.wait()
+
+    def __handle_results_request(self, client_sock: socket, agency_id: int):
+        logging.debug(f"action: request for result | result: in progress | agency: {agency_id}")
+        with self._sync_tools._ready_agencies_count_cv:
+            while (not self._ready_agencies_count == AGENCY_COUNT) and self._running: 
+                self._sync_tools._ready_agencies_count_cv.wait()
         if self._running:
-            self.__handle_send_results(client_sock, agency_id)
-            logging.info(f"action: request for result | result: success | agencia: " +  str(agency_id))
+            with self._sync_tools._read_storage_lock:
+                winners = get_winners_for_agency(agency_id)
+            send_msg(client_sock, MsgType.SERVER_RES_OK, format_list(winners))
+            logging.debug(f"action: request for result | result: success | agency: {agency_id}")
 
     def __handle_notification(self):
-        with self._ready_agencies_count_cv:
+        with self._sync_tools._ready_agencies_count_cv:
             self._ready_agencies_count += 1
             if self._ready_agencies_count == AGENCY_COUNT:
-                self._ready_agencies_count_cv.notify_all()
+                self._sync_tools._ready_agencies_count_cv.notify_all()
+                logging.info("action: sorteo | result: success")
     
     def __process_msg(self, client_sock: socket, agency_id: int):
-        try:
-            msg_type = get_msg_type(client_sock)
-            if msg_type < 0:
-                raise OSError("Socket was closed")
-            logging.debug(f'action: receive_message | result: success | agency {agency_id}')
-            if msg_type == MsgType.PLACE_BET.value:
-                self.___handle_place_bet(client_sock)
-            if msg_type == MsgType.NOTIFY.value:
-                self.__handle_notification()
-            if msg_type == MsgType.REQ_RESPONSE.value:
-                self.__handle_response_request(client_sock, agency_id)
-        except OSError as e:
-            logging.error("action: receive_message | result: fail | error: OsError " + str(e))
-        except ValueError as e:
-            logging.error("action: receive_message | result: fail | error:" +  str(e))
-            send_error_msg(client_sock, "ERROR " + str(e))
-        finally:
-            client_sock.close()
+        msg_type = get_msg_type(client_sock)
+        if msg_type < 0:
+            raise OSError("Could not get message type")
+        logging.debug(f'action: receive_message | result: success | agency {agency_id}')
+        if msg_type == MsgType.PLACE_BETS.value:
+            self.___handle_place_bet(client_sock)
+        if msg_type == MsgType.NOTIFY.value:
+            self.__handle_notification()
+        if msg_type == MsgType.REQ_RESULTS.value:
+            self.__handle_results_request(client_sock, agency_id)
+        client_sock.close()
 
     def ___handle_client_connection(self):
         """
@@ -124,23 +114,23 @@ class Server:
         client socket will also be closed
         """
         while True:
-            client_sock = self._socket_queue.get()
+            client_sock = self._sync_tools._socket_queue.get()
             if client_sock is None:
                 break
             try:
                 agency_id = get_agency_id(client_sock)
                 if agency_id < 0:
-                    raise OSError("Socket was closed")
+                    raise OSError("Could not get agency's id")
+                self.__process_msg(client_sock, agency_id)
             except OSError as e:
-                logging.error("action: receive_message | result: fail | error: OsError " + str(e))
+                logging.error("action: receive_message | result: fail | error:" + str(e))
                 client_sock.close()
             except ValueError as e:
                 logging.error("action: receive_message | result: fail | error:" +  str(e))
-                send_error_msg(client_sock, "ERROR " + str(e))
+                send_msg(client_sock, MsgType.SERVER_FMT_ERR, "Could not parse agency's id")
                 client_sock.close()
             
-            self.__process_msg(client_sock, agency_id)
-            self._socket_queue.task_done()
+            self._sync_tools._socket_queue.task_done()
 
 
     def __accept_new_connection(self):

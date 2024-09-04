@@ -9,21 +9,19 @@ import (
 	"strings"
 	"time"
 )
-const EXPECTED_REPLY string = "OK\n"
 const DELIMITER byte = '\n'
 const UINT8_MAX = 255
+const FIELDS_TO_READ = 5
 const (
 	PLACE_BETS = iota
 	NOTIFY 
 	REQ_RESULTS
+	SERVER_BET_OK
+	SERVER_RES_OK
+	SERVER_FMT_ERR
+	SERVER_BET_ERR
 )
-func GetMsgType(msg_type int)([]byte,error){
-	buf := new(bytes.Buffer)
-	if err := binary.Write(buf, binary.BigEndian, uint8(msg_type)); err != nil {
-		return nil, err
-	}
-	return buf.Bytes(), nil
-}
+
 func BuildMsg(fields []string)([]byte,error){
 	buf := new(bytes.Buffer)
 	for _, field := range fields {
@@ -40,45 +38,31 @@ func BuildMsg(fields []string)([]byte,error){
 	return buf.Bytes(), nil
 }
 
-func GetBatchLen(batch_len int)([]byte,error){
+func GetBytesOfU8(number int)([]byte,error){
 	buf := new(bytes.Buffer)
-	if batch_len > UINT8_MAX{
-		return nil, fmt.Errorf("Batch Length must be 255 or less")
+	if number > UINT8_MAX{
+		return nil, fmt.Errorf("Length must be 255 or less")
 	}
-	if err := binary.Write(buf, binary.BigEndian, uint8(batch_len)); err != nil {
+	if err := binary.Write(buf, binary.BigEndian, uint8(number)); err != nil {
 		return nil, err
 	}
 	return buf.Bytes(), nil
 }
 
 func GetAgencyBytes(agency_id string)([]byte,error){
-	buf := new(bytes.Buffer)
 	id, atoi_err := strconv.Atoi(agency_id)
 	if atoi_err != nil{
 		return nil, atoi_err
 	}
-	if id > UINT8_MAX{
-		return nil, fmt.Errorf("Agency ID must be 255 or less")
-	}
-	if err := binary.Write(buf, binary.BigEndian, uint8(id)); err != nil {
-		return nil, err
-	}
-	return buf.Bytes(), nil
+	return GetBytesOfU8(id)
 }
 
 func SendBatch(sock net.Conn, batch [][]string, agency_id string) error{
-	var buffer []byte
-	agency_id_bytes, agency_id_err := GetAgencyBytes(agency_id)
-	if agency_id_err != nil{
-		return agency_id_err
+	buffer, header_err := BuildHeader(agency_id, PLACE_BETS)
+	if header_err != nil{
+		return header_err
 	}
-	buffer = append(buffer, agency_id_bytes...)
-	msg_type, msg_type_err := GetMsgType(PLACE_BETS)
-	if msg_type_err != nil{
-		return msg_type_err
-	}
-	buffer = append(buffer, msg_type...)
-	batch_len, batch_len_err := GetBatchLen(len(batch))
+	batch_len, batch_len_err := GetBytesOfU8(len(batch))
 	if batch_len_err != nil{
 		return batch_len_err
 	}
@@ -99,7 +83,7 @@ func BuildHeader(agency_id string, msg_type int)([]byte, error){
 		return nil, agency_id_err
 	}
 	buffer = append(buffer, agency_id_bytes...)
-	msg_type_bytes, msg_type_err := GetMsgType(msg_type)
+	msg_type_bytes, msg_type_err := GetBytesOfU8(msg_type)
 	if msg_type_err != nil{
 		return nil, msg_type_err
 	}
@@ -114,26 +98,16 @@ func NotifyServer(sock net.Conn, agency_id string) error{
 	}
 	return SendMsg(sock, buffer)
 }
-func AskForResults(sock net.Conn, agency_id string, timeout time.Duration)([]string, error){
+func AskForResults(sock net.Conn, agency_id string, timeout time.Duration)(int, error){
 	buffer, err := BuildHeader(agency_id, REQ_RESULTS)
 	if err != nil{
-		return nil, err
+		return -1, err
 	}
 	if send_err := SendMsg(sock, buffer); send_err != nil {
-		return nil, send_err
+		return -1, send_err
 	}
-	sock.SetReadDeadline(time.Now().Add(timeout))
 	
-	response, read_err := bufio.NewReader(sock).ReadString(DELIMITER)
-	if read_err != nil{
-		return nil, read_err
-	}
-	sock.SetReadDeadline(time.Time{})
-
-	if len(strings.TrimRight(response, "\n")) == 0{
-		return []string{}, nil
-	}
-	return strings.Split(response, ","), nil
+	return receiveServerResponse(sock, timeout)
 }
 
 func SendMsg(sock net.Conn, msg []byte)error{
@@ -146,13 +120,33 @@ func SendMsg(sock net.Conn, msg []byte)error{
 	return err
 }
 
-func receiveServerResponse(sock net.Conn)(int,error){
+func receiveServerResponse(sock net.Conn, timeout time.Duration)(int, error){
+	sock.SetReadDeadline(time.Now().Add(timeout))
 	response, read_err := bufio.NewReader(sock).ReadString(DELIMITER)
 	if read_err != nil{
 		return -1, read_err
 	}
-	i, err := strconv.Atoi(strings.TrimRight(response, "\n"))
-	return i, err
+	sock.SetReadDeadline(time.Time{})
+	response = strings.TrimRight(response, "\n")
+	response_fields := strings.Split(response, ",")
+	response_code, parse_err := strconv.Atoi(response_fields[0])
+	if len(response_fields) < 2 ||  parse_err != nil{
+		
+		return -1, fmt.Errorf("Server response did not follow protocol: %v", response)
+	}
+	if response_code == SERVER_FMT_ERR{
+		return -1, fmt.Errorf("Server responded with error: %v", response_fields[1])
+	}
+	if response_code == SERVER_BET_ERR {
+		return -1, fmt.Errorf("Server detected error when processing bets. Bets processed: %v", response_fields[1])
+	}
+	if response_code == SERVER_BET_OK{
+		return strconv.Atoi(response_fields[1])
+	}
+	if response_code == SERVER_RES_OK{
+		return len(response_fields) - 1, nil
+	}
+	return -1, fmt.Errorf("Server response did not follow protocol: %v", response)
 }
 	
 	

@@ -5,4 +5,4 @@ log:
   level: "INFO"
 batch:
   maxAmount: 125
-timeout: "3s"
+timeout: "10s"

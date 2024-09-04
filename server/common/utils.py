@@ -39,7 +39,6 @@ def store_bets(bets: list[Bet]) -> None:
         for bet in bets:
             writer.writerow([bet.agency, bet.first_name, bet.last_name,
                              bet.document, bet.birthdate, bet.number])
-        file.close()
 
 
 """
@@ -51,13 +50,12 @@ def load_bets() -> list[Bet]:
         reader = csv.reader(file, quoting=csv.QUOTE_MINIMAL)
         for row in reader:
             yield Bet(row[0], row[1], row[2], row[3], row[4], row[5])
-        file.close()
 
 def build_bets(betmsgs: list[list[str,str, str, str, str, str]]) -> list[Bet]:
     return map(lambda betmsg: Bet(betmsg[0], betmsg[1], betmsg[2], betmsg[3], betmsg[4], betmsg[5]), betmsgs)
 
-def get_winners_for_agency(agency_id: int, read_lock: Lock) -> list[str]:
-    with read_lock:
-        bets = load_bets()
-    return list(map(lambda x: x.document, filter(lambda bet: bet.agency == agency_id and has_won(bet),bets)))
+def get_winners_for_agency(agency_id: int) -> str:
+    return list(map(lambda x: x.document, filter(lambda bet: bet.agency == agency_id and has_won(bet),load_bets())))
+   
+
 

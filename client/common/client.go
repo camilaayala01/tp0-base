@@ -10,7 +10,7 @@ import (
 )
 
 var log = logging.MustGetLogger("log")
-const FIELDS_TO_READ = 5
+
 
 // ClientConfig Configuration used by the client
 type ClientConfig struct {
@@ -91,8 +91,8 @@ func (c *Client) PlaceBets(){
 				)
 				return
 			}
-			log.Infof("action: apuestas enviadas  | result: in_progress | cantidad: %v", len(batch))
-			response, response_err := receiveServerResponse(c.conn)
+			log.Infof("action: apuestas enviadas | result: in_progress | cantidad: %v", len(batch))
+			response, response_err := receiveServerResponse(c.conn, c.config.Timeout)
 			c.conn.Close()
 			if response_err != nil {
 				log.Errorf("action: apuestas enviadas | result: fail | error: %v",
@@ -101,11 +101,10 @@ func (c *Client) PlaceBets(){
 				return
 			}
 			
-			if response !=  len(batch) {
-				log.Errorf("action: apuestas enviadas | result: fail | enviadas: %v, recibidas: %v, ultimo registro de batch %v",
+			if response != len(batch) {
+				log.Errorf("action: apuestas enviadas | result: fail | enviadas: %v, recibidas: %v",
 					len(batch), 
 					response,
-					batch[len(batch) -1],
 				)
 				return
 			}
@@ -120,13 +119,18 @@ func (c *Client) PlaceBets(){
 			return
 		}
 	}
-	if c.createClientSocket() != nil{
-		return  
+	for{
+		if c.createClientSocket() != nil{
+			return  
+		}
+		err := NotifyServer(c.conn, c.config.ID)
+		c.conn.Close()
+		if err == nil{
+			break
+		}
+		
 	}
-	time.Sleep(2 * time.Second)
-	NotifyServer(c.conn, c.config.ID)
-	log.Infof("action: notify")
-	c.conn.Close()
+	
 
 	for{
 		if c.createClientSocket() != nil{
@@ -135,7 +139,7 @@ func (c *Client) PlaceBets(){
 		res, err := AskForResults(c.conn, c.config.ID, c.config.Timeout)
 		c.conn.Close()
 		if err == nil{
-			log.Infof("action: consulta_ganadores | result: success | cant_ganadores: %v", len(res))
+			log.Infof("action: consulta_ganadores | result: success | cant_ganadores: %v", res)
 			break
 		}
 		log.Infof("action: consulta_ganadores | result: fail")

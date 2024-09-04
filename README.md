@@ -28,3 +28,8 @@ Siendo estos los valores que tome como maximos en cada campo por lo cual cada pa
 El numero de agencia se envia como string asi que 3 bytes le permitiria tener como maximo 999. 
 
 Hay 78.697 apuestas
+Agregar codigo error
+si hace apuesta despues de decir listo 
+
+
+Iba a pasar el codigo del servidor como numero pero para pasar de byte a int hay que pasar primero por str asi que me parecio que era lo mismo
