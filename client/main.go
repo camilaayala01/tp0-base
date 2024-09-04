@@ -7,8 +7,10 @@ import (
 	"os/signal"
 	"syscall"
 	"sync"
+	"time"
 	"github.com/op/go-logging"
 	"github.com/spf13/viper"
+	"github.com/pkg/errors"
 	"github.com/7574-sistemas-distribuidos/docker-compose-init/client/common"
 )
 
@@ -42,6 +44,11 @@ func InitConfig() (*viper.Viper, error) {
 	if err := v.ReadInConfig(); err != nil {
 		fmt.Printf("Configuration could not be read from config file. Using env variables instead")
 	}
+	// Parse time.Duration variables and return an error if those variables cannot be parsed
+
+	if _, err := time.ParseDuration(v.GetString("timeout")); err != nil {
+		return nil, errors.Wrapf(err, "Could not parse timeout from config file as time.Duration.")
+	}
 	return v, nil
 }
 
@@ -70,10 +77,11 @@ func InitLogger(logLevel string) error {
 // PrintConfig Print all the configuration parameters of the program.
 // For debugging purposes only
 func PrintConfig(v *viper.Viper) {
-	log.Infof("action: config | result: success | client_id: %s | server_address: %s | log_level: %s | max batch amount %v",
+	log.Infof("action: config | result: success | client_id: %s | server_address: %s | server_timeout: %v |log_level: %s | max batch amount %v",
 		v.GetString("id"),
 		v.GetString("server.address"),
 		v.GetString("log.level"),
+		v.GetDuration("timeout"),
 		v.GetInt("batch.maxamount"),
 	)
 }
@@ -102,6 +110,7 @@ func main() {
 		ServerAddress: v.GetString("server.address"),
 		ID:            v.GetString("id"),
 		MaxBatchSize: v.GetInt("batch.maxamount"),
+		Timeout: 	v.GetDuration("timeout"),
 	}
 
 	client := common.NewClient(clientConfig)

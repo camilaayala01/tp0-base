@@ -7,6 +7,7 @@ import (
 	"bufio"
 	"strconv"
 	"strings"
+	"time"
 )
 const EXPECTED_REPLY string = "OK\n"
 const DELIMITER byte = '\n'
@@ -113,7 +114,7 @@ func NotifyServer(sock net.Conn, agency_id string) error{
 	}
 	return SendMsg(sock, buffer)
 }
-func AskForResults(sock net.Conn, agency_id string)([]string, error){
+func AskForResults(sock net.Conn, agency_id string, timeout time.Duration)([]string, error){
 	buffer, err := BuildHeader(agency_id, REQ_RESULTS)
 	if err != nil{
 		return nil, err
@@ -121,18 +122,20 @@ func AskForResults(sock net.Conn, agency_id string)([]string, error){
 	if send_err := SendMsg(sock, buffer); send_err != nil {
 		return nil, send_err
 	}
+	sock.SetReadDeadline(time.Now().Add(timeout))
 	
 	response, read_err := bufio.NewReader(sock).ReadString(DELIMITER)
 	if read_err != nil{
 		return nil, read_err
 	}
+	sock.SetReadDeadline(time.Time{})
+
 	if len(strings.TrimRight(response, "\n")) == 0{
 		return []string{}, nil
 	}
 	return strings.Split(response, ","), nil
 }
 
-//func RequestResults(sock net.Conn)
 func SendMsg(sock net.Conn, msg []byte)error{
 	n, err := sock.Write(msg)
 	var m int

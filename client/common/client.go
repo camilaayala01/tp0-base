@@ -17,6 +17,7 @@ type ClientConfig struct {
 	ID            string
 	MaxBatchSize     int
 	ServerAddress string
+	Timeout 	time.Duration
 }
 
 // Client Entity that encapsulates how
@@ -122,6 +123,7 @@ func (c *Client) PlaceBets(){
 	if c.createClientSocket() != nil{
 		return  
 	}
+	time.Sleep(2 * time.Second)
 	NotifyServer(c.conn, c.config.ID)
 	log.Infof("action: notify")
 	c.conn.Close()
@@ -130,14 +132,13 @@ func (c *Client) PlaceBets(){
 		if c.createClientSocket() != nil{
 			return  
 		}
-		res, err := AskForResults(c.conn, c.config.ID)
+		res, err := AskForResults(c.conn, c.config.ID, c.config.Timeout)
 		c.conn.Close()
 		if err == nil{
 			log.Infof("action: consulta_ganadores | result: success | cant_ganadores: %v", len(res))
 			break
 		}
 		log.Infof("action: consulta_ganadores | result: fail")
-		time.Sleep(5 * time.Second)
 	}
 }
 
