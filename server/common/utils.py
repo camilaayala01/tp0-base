@@ -7,7 +7,7 @@ STORAGE_FILEPATH = "./bets.csv"
 """ Simulated winner number in the lottery contest. """
 LOTTERY_WINNER_NUMBER = 7574
 DOCUMENT_LEN = 8
-
+from threading import Lock
 """ A lottery bet registry. """
 class Bet:
     def __init__(self, agency: str, first_name: str, last_name: str, document: str, birthdate: str, number: str):
@@ -56,6 +56,8 @@ def load_bets() -> list[Bet]:
 def build_bets(betmsgs: list[list[str,str, str, str, str, str]]) -> list[Bet]:
     return map(lambda betmsg: Bet(betmsg[0], betmsg[1], betmsg[2], betmsg[3], betmsg[4], betmsg[5]), betmsgs)
 
-def get_winners_for_agency(agency_id: int) -> list[str]:
-    return list(map(lambda x: x.document, filter(lambda bet: bet.agency == agency_id and has_won(bet), load_bets())))
+def get_winners_for_agency(agency_id: int, read_lock: Lock) -> list[str]:
+    with read_lock:
+        bets = load_bets()
+    return list(map(lambda x: x.document, filter(lambda bet: bet.agency == agency_id and has_won(bet),bets)))
 
