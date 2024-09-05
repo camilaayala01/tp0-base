@@ -9,17 +9,18 @@ import (
 	"strings"
 	"time"
 )
-const DELIMITER byte = '\n'
+const DELIMITER byte= '\n'
+const SEPARATOR = ","
 const UINT8_MAX = 255
 const FIELDS_TO_READ = 5
 const (
 	PLACE_BETS = iota
 	NOTIFY 
 	REQ_RESULTS
-	SERVER_BET_OK
-	SERVER_RES_OK
-	SERVER_FMT_ERR
-	SERVER_BET_ERR
+	PLACE_BETS_OK
+	REQ_RESULTS_OK
+	SERVER_ERR
+	PLACE_BETS_ERR
 )
 
 func BuildMsg(fields []string)([]byte,error){
@@ -127,26 +128,25 @@ func receiveServerResponse(sock net.Conn, timeout time.Duration)(int, error){
 		return -1, read_err
 	}
 	sock.SetReadDeadline(time.Time{})
-	response = strings.TrimRight(response, "\n")
-	response_fields := strings.Split(response, ",")
+	response = strings.TrimRight(response, string(DELIMITER))
+	response_fields := strings.Split(response, SEPARATOR)
 	response_code, parse_err := strconv.Atoi(response_fields[0])
 	if len(response_fields) < 2 ||  parse_err != nil{
-		
 		return -1, fmt.Errorf("Server response did not follow protocol: %v", response)
 	}
-	if response_code == SERVER_FMT_ERR{
+	switch response_code{
+	case SERVER_ERR :
 		return -1, fmt.Errorf("Server responded with error: %v", response_fields[1])
-	}
-	if response_code == SERVER_BET_ERR {
+	case PLACE_BETS_ERR:
 		return -1, fmt.Errorf("Server detected error when processing bets. Bets processed: %v", response_fields[1])
-	}
-	if response_code == SERVER_BET_OK{
+	case PLACE_BETS_OK :
 		return strconv.Atoi(response_fields[1])
-	}
-	if response_code == SERVER_RES_OK{
+	case REQ_RESULTS_OK:
 		return len(response_fields) - 1, nil
+	default:
+		return -1, fmt.Errorf("Server response did not follow protocol: %v", response)
 	}
-	return -1, fmt.Errorf("Server response did not follow protocol: %v", response)
+	
 }
 	
 	

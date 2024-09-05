@@ -11,11 +11,10 @@ class MsgType(Enum):
     PLACE_BETS = 0
     NOTIFY = 1
     REQ_RESULTS = 2
-    SERVER_BET_OK = 3
-    SERVER_RES_OK = 4
-    SERVER_FMT_ERR = 5
-    SERVER_BET_ERR = 6
-    SERVER_ERROR_INVALID_ACTION = 7
+    PLACE_BETS_OK = 3
+    REQ_RESULTS_OK = 4
+    SERVER_ERR = 5
+    PLACE_BETS_ERR = 6
 
 
 def parse_msg(buffer: bytes, fields_to_read: int) -> tuple[int, list[str]]:

@@ -131,7 +131,6 @@ func (c *Client) PlaceBets(){
 		
 	}
 	
-
 	for{
 		if c.createClientSocket() != nil{
 			return  

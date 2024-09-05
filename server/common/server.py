@@ -21,7 +21,7 @@ class Server:
         self._server_socket.bind(('', port))
         self._server_socket.listen(listen_backlog)
         self._running = True
-        self._ready_agencies_count = 0
+        self._ready_agencies = {}
         self._threads = []
         self._sync_tools = SyncTools()
 
@@ -63,33 +63,34 @@ class Server:
                 if self._running:
                     logging.error("action: accept_connections | result: fail | error:" +  str(e))
       
-    def ___handle_place_bet(self, client_sock: socket):
+    def ___handle_place_bet(self, client_sock: socket, agency_id: int):
+        with self._sync_tools._ready_agencies_count_cv:
+            if self._ready_agencies.get(agency_id):
+                send_msg(client_sock, MsgType.SERVER_ERR, "Was already notified of end of bets")
         bet_msgs, err = receive_bets(client_sock)
         if err:
             logging.error("action: apuesta_recibida | result: fail | cantidad: " + str(len(bet_msgs)))
-            send_msg(client_sock, MsgType.SERVER_BET_ERR, str(len(bet_msgs))) 
+            send_msg(client_sock, MsgType.PLACE_BETS_ERR, str(len(bet_msgs))) 
         bets = build_bets(bet_msgs)
         with self._sync_tools._write_storage_lock:
             store_bets(bets)
         logging.debug(f"action: apuesta_recibida | result: success | cantidad: {len(bet_msgs)}")
-        send_msg(client_sock, MsgType.SERVER_BET_OK, str(len(bet_msgs)))
+        send_msg(client_sock, MsgType.PLACE_BETS_OK, str(len(bet_msgs)))
     
 
     def __handle_results_request(self, client_sock: socket, agency_id: int):
-        logging.debug(f"action: request for result | result: in progress | agency: {agency_id}")
         with self._sync_tools._ready_agencies_count_cv:
-            while (not self._ready_agencies_count == AGENCY_COUNT) and self._running: 
+            while (not len(self._ready_agencies) == AGENCY_COUNT) and self._running: 
                 self._sync_tools._ready_agencies_count_cv.wait()
         if self._running:
             with self._sync_tools._read_storage_lock:
                 winners = get_winners_for_agency(agency_id)
-            send_msg(client_sock, MsgType.SERVER_RES_OK, format_list(winners))
-            logging.debug(f"action: request for result | result: success | agency: {agency_id}")
+            send_msg(client_sock, MsgType.REQ_RESULTS_OK, format_list(winners))
 
-    def __handle_notification(self):
+    def __handle_notification(self, agency_id: int):
         with self._sync_tools._ready_agencies_count_cv:
-            self._ready_agencies_count += 1
-            if self._ready_agencies_count == AGENCY_COUNT:
+            self._ready_agencies[agency_id] = 1
+            if len(self._ready_agencies) == AGENCY_COUNT:
                 self._sync_tools._ready_agencies_count_cv.notify_all()
                 logging.info("action: sorteo | result: success")
     
@@ -99,9 +100,9 @@ class Server:
             raise OSError("Could not get message type")
         logging.debug(f'action: receive_message | result: success | agency {agency_id}')
         if msg_type == MsgType.PLACE_BETS.value:
-            self.___handle_place_bet(client_sock)
+            self.___handle_place_bet(client_sock, agency_id)
         if msg_type == MsgType.NOTIFY.value:
-            self.__handle_notification()
+            self.__handle_notification(agency_id)
         if msg_type == MsgType.REQ_RESULTS.value:
             self.__handle_results_request(client_sock, agency_id)
         client_sock.close()
@@ -127,7 +128,7 @@ class Server:
                 client_sock.close()
             except ValueError as e:
                 logging.error("action: receive_message | result: fail | error:" +  str(e))
-                send_msg(client_sock, MsgType.SERVER_FMT_ERR, "Could not parse agency's id")
+                send_msg(client_sock, MsgType.SERVER_ERR, "Could not parse agency's id")
                 client_sock.close()
             
             self._sync_tools._socket_queue.task_done()
