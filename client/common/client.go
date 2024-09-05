@@ -65,6 +65,37 @@ func BuildBatch(c *Client, reader *csv.Reader)([][]string,error){
 	return batch, nil
 
 }
+func (c *Client)SendNotification()error
+{
+	for{
+		if sock_err := c.createClientSocket(); sock_err != nil{
+			return sock_err
+		}
+		err := NotifyServer(c.conn, c.config.ID)
+		c.conn.Close()
+		if err == nil{
+			break
+		}
+		
+	}
+}
+func (c *Client)RequestResponse()error{
+	for{
+		if sock_err := c.createClientSocket(); sock_err != nil{
+			return sock_err
+		}
+		res, err := AskForResults(c.conn, c.config.ID, c.config.Timeout)
+		c.conn.Close()
+		if err == nil{
+			log.Infof("action: consulta_ganadores | result: success | cant_ganadores: %v", res)
+			break
+		}
+		log.Infof("action: consulta_ganadores | result: fail")
+	}
+
+}
+
+
 func (c *Client) PlaceBets(){
 	file, err := os.Open("betfile.csv") 
       
@@ -119,30 +150,11 @@ func (c *Client) PlaceBets(){
 			return
 		}
 	}
-	for{
-		if c.createClientSocket() != nil{
-			return  
-		}
-		err := NotifyServer(c.conn, c.config.ID)
-		c.conn.Close()
-		if err == nil{
-			break
-		}
-		
-	}
 	
-	for{
-		if c.createClientSocket() != nil{
-			return  
-		}
-		res, err := AskForResults(c.conn, c.config.ID, c.config.Timeout)
-		c.conn.Close()
-		if err == nil{
-			log.Infof("action: consulta_ganadores | result: success | cant_ganadores: %v", res)
-			break
-		}
-		log.Infof("action: consulta_ganadores | result: fail")
+	if notify_err := c.SendNotification(){
+		return
 	}
+	c.RequestResponse()
 }
 
 
