@@ -62,39 +62,31 @@ Por lo cual defini batch.maxAmount = 125 (8000 % 64)
 Se envia al servidor una cantidad de apuestas que va a haber en el batch y las apuestas.
 Ahora el servidor responde con la cantidad de apuestas que pudo almacenar. El cliente compara lo recibido con la cantidad enviada y asi determina si hubo o no un error. Si se envia un -1 es porque hubo un ValueError en el server lo cual implica que el formato de alguna apuesta era incorrecto.
 
-### ej7:
-Como hay mas mensajes se agregan un campo MsgType a los mensajes del cliente que puede ser:
 
-    - PLACE_BET = 0
-    - NOTIFY = 1
-    - REQ_RESPONSE = 2
+### ej7:
+Como hay mas mensajes se agregan un campo MsgType a los mensajes que puede ser:
+-  PLACE_BETS = 0
+- NOTIFY = 1
+- REQ_RESULTS = 2
+- PLACE_BETS_OK = 3
+-  REQ_RESULTS_OK = 4
+- SERVER_ERR = 5
+- PLACE_BETS_ERR = 6
 
 El servidor contesta:
 
-    - en el caso de REQ_RESPONSE con un mensaje que contiene los dnis de los ganadores con el formato "dni1,dni2, .. ,dnin\n". 
-    - en el caso de PLACE_BET con la cantidad de apuestas procesadas correctamente. 
-    - en el caso de NOTIFY el servidor no contesta y el cliente no espera ninguna respuesta.
-    - Si todavia no puede consultar simplemente se cierra la conexion. Ante esto el cliente pasa a dormir 5s y luego intenta de nuevo (Polling)
-### ej8 
-   - Se definen mas tipos de mensajes siendo estos: 
-        - PLACE_BETS = 0
-        - NOTIFY = 1
-        - REQ_RESULTS = 2
-        - PLACE_BETS_OK = 3
-        - REQ_RESULTS_OK = 4
-        - SERVER_ERR = 5
-        - PLACE_BETS_ERR = 6
+- en el caso de REQ_RESPONSE con un mensaje que contiene los dnis de los ganadores con el formato "dni1,dni2, .. ,dnin\n". 
+- en el caso de PLACE_BET con la cantidad de apuestas procesadas correctamente. 
+- en el caso de NOTIFY el servidor no contesta y el cliente no espera ninguna respuesta.
+- Si todavia no puede consultar simplemente se cierra la conexion. Ante esto el cliente pasa a dormir un tiempo determinado en la variable del archivo de configuracion PollingInterval y luego intenta de nuevo (Polling)
 
-    Los mensajes del cliente son ahora de la forma:
-    | agency_id  | msg_type | payload |
-        1 byte      1 byte    variable
-    
-    Tanto en el mensaje Notify como en el de RequestResults no se necesita enviar informacion adicional por lo que no hay un payload. 
-    En el caso de PlaceBet se requiere enviar tambien las apuestas. Se mantiene el formato definido anteriormente. 
+### ej8 
     Ahora cuando el cliente no puede aun consultar el servidor hace Long Polling, esperando en una variable de condicion a que todos esten listos por lo cual se cambio el sleep del loop del cliente por un timeout en el socket, el cual puede ser tomado del config. 
-    
 
 # Parte 3
 ### Mecanismos de sincronizacion: 
+    Para simular un paralelismo use threads de la libreria threading de Python. Debido a que las operaciones a paralelizar son del tipo I/O (lectura de socket del cliente, escritura y lectura del archivo de apuestas) y no de procesamiento de CPU, el GLI (Global Lock Interpreter) no causo problemas de performance. Cuando se levanta el servidor levanto un hilo por agencia (numero conocido y fijo por enunciado) y cada uno lee de una cola de sockets. Cuando un nuevo cliente se conecta se inserta el socket en dicha cola para que un thread lo desencole y se encargue de llevar a cabo el manejo de la comunicacion con ese cliente. Cuando el server finaliza inserta None en la cola una cantidad de veces igual a la cantidad de hilos lo cual les indica que deben terminar. 
     - Para el acceso al archivo de apuestas se definio un lock, el cual se toma tanto para leer como para escribir en el archivo
     - Para el Long Polling que se da cuando un cliente consulta por los resultados del sorteo pero aun no se hizo se uso una variable de condicion. 
+    
+    Cada vez que llega un nuevo mensaje de notificacion se va a chequear si es posible hacer el sorteo. Si lo es entonces se va a notificar a quienes estuviesen esperando. Cada vez que llega un pedido de Resultados se chequea si puede hacerse el sorteo. Si puede hacerse entonces se lockea el archivo de apuestas y se consulta a los ganadores de esa agencia. Si no se puede entonces se va a esperar en la variable de condicion hasta que alguien le notifique o le llegue al servidor un SIGTERM. 
