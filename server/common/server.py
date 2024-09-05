@@ -57,7 +57,7 @@ class Server:
             logging.debug(f'action: receive_message | result: success | ip: {addr[0]}')
             if err:
                 logging.error("action: apuesta_recibida | result: fail | cantidad: " +  str(len(bet_msgs)))
-                send_msg(client_sock, "ERROR: unexpected format in bet number " + str(len(bet_msgs) + 1))
+                send_msg(client_sock, str(len(bet_msgs)))
             store_bets(build_bets(bet_msgs))
             logging.info(f"action: apuesta_almacenada | result: success | cantidad: " +  str(len(bet_msgs)))
             send_msg(client_sock, str(len(bet_msgs)))
@@ -65,7 +65,7 @@ class Server:
             logging.error("action: receive_message | result: fail | error: OsError " + str(e))
         except ValueError as e:
             logging.error("action: receive_message | result: fail | error:" +  str(e))
-            send_msg(client_sock, "ERROR " + str(e))
+            send_msg(client_sock, "-1")
         finally:
             client_sock.close()
 

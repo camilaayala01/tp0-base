@@ -98,12 +98,15 @@ func (c *Client) PlaceBets(){
 				)
 				return
 			}
+			if response == -1 {
+				log.Errorf("action: apuestas enviadas | result: fail | error en formato")
+				return
+			}
 			
-			if response !=  len(batch) {
-				log.Errorf("action: apuestas enviadas | result: fail | enviadas: %v, recibidas: %v, ultimo registro de batch %v",
+			if response != len(batch) {
+				log.Errorf("action: apuestas enviadas | result: fail | enviadas: %v, recibidas: %v",
 					len(batch), 
 					response,
-					batch[len(batch) -1],
 				)
 				return
 			}

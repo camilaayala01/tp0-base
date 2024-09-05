@@ -26,7 +26,6 @@ def receive_msg(buffer: bytes, socket: socket)-> tuple[list[str], bytes]:
         buffer = buffer[read:len(buffer)]
         more_buffer = socket.recv(BUFFER_SIZE)
         if not more_buffer:
-            print("Se cerro el socket, me quedo sin terminar: " + str(msg))
             return None, None
         buffer += more_buffer
         read, more_msg = parse_msg(buffer, EXPECTED_MSG_FIELDS - len(msg))
