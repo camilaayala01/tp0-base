@@ -65,9 +65,8 @@ func BuildBatch(c *Client, reader *csv.Reader)([][]string,error){
 	return batch, nil
 
 }
-func (c *Client)SendNotification()error
-{
-	for{
+func (c *Client) SendNotification()error{
+	for {
 		if sock_err := c.createClientSocket(); sock_err != nil{
 			return sock_err
 		}
@@ -78,8 +77,9 @@ func (c *Client)SendNotification()error
 		}
 		
 	}
+	return nil
 }
-func (c *Client)RequestResponse()error{
+func (c *Client) RequestResponse()error{
 	for{
 		if sock_err := c.createClientSocket(); sock_err != nil{
 			return sock_err
@@ -151,7 +151,7 @@ func (c *Client) PlaceBets(){
 		}
 	}
 	
-	if notify_err := c.SendNotification(){
+	if notify_err := c.SendNotification(); notify_err != nil{
 		return
 	}
 	c.RequestResponse()
