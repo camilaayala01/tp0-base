@@ -21,7 +21,7 @@ class Bet:
         self.first_name = first_name
         self.last_name = last_name
         if len(str(document)) !=  DOCUMENT_LEN:
-            raise ValueError("Documento debe tener 8 digitos, documento: ", document)
+            raise ValueError(f'Documento debe tener 8 digitos, documento: {document}')
         self.document = document
         self.birthdate = datetime.date.fromisoformat(birthdate)
         self.number = int(number)

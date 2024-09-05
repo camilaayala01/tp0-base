@@ -64,7 +64,7 @@ class Server:
         except OSError as e:
             logging.error("action: receive_message | result: fail | error: OsError " + str(e))
         except ValueError as e:
-            logging.error("action: receive_message | result: fail | error:" +  str(e))
+            logging.error("action: receive_message | result: fail | error: " +  str(e))
             send_msg(client_sock, "-1")
         finally:
             client_sock.close()
