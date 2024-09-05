@@ -7,7 +7,6 @@ import (
 	"bufio"
 	"strconv"
 	"strings"
-	"time"
 )
 const DELIMITER byte= '\n'
 const SEPARATOR = ","
@@ -99,7 +98,7 @@ func NotifyServer(sock net.Conn, agency_id string) error{
 	}
 	return SendMsg(sock, buffer)
 }
-func AskForResults(sock net.Conn, agency_id string, timeout time.Duration)(int, error){
+func AskForResults(sock net.Conn, agency_id string)(int, error){
 	buffer, err := BuildHeader(agency_id, REQ_RESULTS)
 	if err != nil{
 		return -1, err
@@ -108,7 +107,7 @@ func AskForResults(sock net.Conn, agency_id string, timeout time.Duration)(int, 
 		return -1, send_err
 	}
 	
-	return receiveServerResponse(sock, timeout)
+	return receiveServerResponse(sock)
 }
 
 func SendMsg(sock net.Conn, msg []byte)error{
@@ -121,13 +120,11 @@ func SendMsg(sock net.Conn, msg []byte)error{
 	return err
 }
 
-func receiveServerResponse(sock net.Conn, timeout time.Duration)(int, error){
-	sock.SetReadDeadline(time.Now().Add(timeout))
+func receiveServerResponse(sock net.Conn)(int, error){
 	response, read_err := bufio.NewReader(sock).ReadString(DELIMITER)
 	if read_err != nil{
 		return -1, read_err
 	}
-	sock.SetReadDeadline(time.Time{})
 	response = strings.TrimRight(response, string(DELIMITER))
 	response_fields := strings.Split(response, SEPARATOR)
 	response_code, parse_err := strconv.Atoi(response_fields[0])

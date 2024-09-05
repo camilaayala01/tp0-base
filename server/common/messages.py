@@ -1,10 +1,26 @@
-from functools import reduce
 import socket
-import string
+from enum import Enum
+
 LEN_BYTES = 1
 END_CHARACTER = "\n"
+SEPARATOR = ","
 EXPECTED_MSG_FIELDS = 6
 BUFFER_SIZE = 1024
+
+class MsgType(Enum):
+    PLACE_BETS = 0
+    NOTIFY = 1
+    REQ_RESULTS = 2
+    PLACE_BETS_OK = 3
+    REQ_RESULTS_OK = 4
+    SERVER_ERR = 5
+    PLACE_BETS_ERR = 6
+
+"""
+Receives a bytes buffer and an amount of fields to read. If the buffer ends with the length of a packet 
+it will return those bytes for them to be appended to the respective field. Otherwise it will read from the buffer said
+length of bytes and decode them as a string.
+"""
 def parse_msg(buffer: bytes, fields_to_read: int) -> tuple[int, list[str]]:
     fields: list[str] = []
     idx: int = 0
@@ -20,7 +36,11 @@ def parse_msg(buffer: bytes, fields_to_read: int) -> tuple[int, list[str]]:
         else:
             break
     return idx, fields
-
+"""
+Receives a message from a buffer and if it is cut in half it reads more bytes from the stream.
+Will return the parsed message and remaining buffer bytes
+Will fail if the stream is close in the middle of a package. 
+"""
 def receive_msg(buffer: bytes, socket: socket)-> tuple[list[str], bytes]:
     read, msg = parse_msg(buffer, EXPECTED_MSG_FIELDS)
     while len(msg) < EXPECTED_MSG_FIELDS:
@@ -32,6 +52,13 @@ def receive_msg(buffer: bytes, socket: socket)-> tuple[list[str], bytes]:
         read, more_msg = parse_msg(buffer, EXPECTED_MSG_FIELDS - len(msg))
         msg += more_msg
     return msg, buffer[read:len(buffer)]
+"""
+Receives a length of a batch from socket and tries to read them
+Will read a fixed amount of bytes and try to process all the packages there before requesting more bytes
+Will return error = True if:
+- The stream ended in the middle of a bet
+- The socket was closed before the length or the amount of indicated packets could be read.
+"""
 
 def receive_bets(socket:socket)-> tuple[list[list[str]], bool]:
     packets: list[list[str]] = []
@@ -55,45 +82,34 @@ def receive_bets(socket:socket)-> tuple[list[list[str]], bool]:
     return packets, error
 
 def get_agency_id(socket: socket)-> int:
-    return get_id_field(socket)
+    return get_fixed_len_number_field(socket, LEN_BYTES)
 
 def get_msg_type(socket: socket)-> int:
-    return get_id_field(socket)
+    return get_fixed_len_number_field(socket, LEN_BYTES)
 
-def get_id_field(socket: socket) -> int:
-    id_bytes: bytes = socket.recv(LEN_BYTES)
-    if not id_bytes:
+def get_fixed_len_number_field(socket: socket, fixed_len: int) -> int:
+    field_bytes: bytes = socket.recv(fixed_len)
+    if not field_bytes:
         return -1
-    return int.from_bytes(id_bytes, 'big')
+    return int.from_bytes(field_bytes, 'big')
 
-def encode_field(field: str) -> bytes:
-    return field.encode('utf-8') + "\n".encode('utf-8')
-
-def encode_list(list: list[str]) -> bytes:
-    msg: bytes = bytes()
+def format_list(list: list[str]) -> str:
+    answer = ""
     for i in range(len(list)):
-        msg += list[i].encode('utf-8')
+        answer += list[i]
         if i < len(list) - 1:
-            msg += ",".encode('utf-8')
-    return ( msg + "\n".encode('utf-8'))
+            answer += SEPARATOR
+    return answer 
 
-def send_no_winners(socket: socket):
-    send_msg(socket, "\n".encode('utf-8'))
+def format_and_encode(msg_type: MsgType, msg: str) -> bytes:
+    formatted = str(msg_type.value) + SEPARATOR
+    formatted += msg
+    formatted += END_CHARACTER
+    return formatted.encode('utf-8')
 
-def send_winners(socket: socket, winners: list[str]):
-    msg = encode_list(winners)
-    send_msg(socket, msg)
-
-def send_batch_size(socket: socket, bets_read: str):
-    msg = encode_field(bets_read)
-    send_msg(socket, msg)
-
-def send_error_msg(socket: socket, error_msg: str):
-    msg = encode_field(error_msg)
-    send_msg(socket, msg)
-    
-def send_msg(socket: socket, msg: bytes):
-    bytes_sent = socket.send(msg)
-    while bytes_sent < len(msg):
-        socket.send(encode_field(msg[bytes_sent:len(msg)]))
+def send_msg(socket: socket, msg_type: MsgType, msg: str):
+    msg_bytes = format_and_encode(msg_type, msg)
+    bytes_sent = socket.send(msg_bytes)
+    while bytes_sent < len(msg_bytes):
+        socket.send(msg_bytes[bytes_sent:len(msg_bytes)])
     

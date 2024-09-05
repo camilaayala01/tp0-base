@@ -17,7 +17,7 @@ type ClientConfig struct {
 	ID            string
 	MaxBatchSize     int
 	ServerAddress string
-	Timeout 	time.Duration
+	PollingInterval time.Duration
 }
 
 // Client Entity that encapsulates how
@@ -84,15 +84,16 @@ func (c *Client) RequestResponse()error{
 		if sock_err := c.createClientSocket(); sock_err != nil{
 			return sock_err
 		}
-		res, err := AskForResults(c.conn, c.config.ID, c.config.Timeout)
+		res, err := AskForResults(c.conn, c.config.ID)
 		c.conn.Close()
 		if err == nil{
 			log.Infof("action: consulta_ganadores | result: success | cant_ganadores: %v", res)
 			break
 		}
 		log.Infof("action: consulta_ganadores | result: fail")
+		time.Sleep(c.config.PollingInterval)
 	}
-
+	return nil
 }
 
 
@@ -123,7 +124,7 @@ func (c *Client) PlaceBets(){
 				return
 			}
 			log.Infof("action: apuestas enviadas | result: in_progress | cantidad: %v", len(batch))
-			response, response_err := receiveServerResponse(c.conn, c.config.Timeout)
+			response, response_err := receiveServerResponse(c.conn)
 			c.conn.Close()
 			if response_err != nil {
 				log.Errorf("action: apuestas enviadas | result: fail | error: %v",

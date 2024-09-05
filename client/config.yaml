@@ -5,3 +5,5 @@ log:
   level: "INFO"
 batch:
   maxAmount: 125
+polling: 
+  interval: 3s

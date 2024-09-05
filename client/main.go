@@ -10,6 +10,8 @@ import (
 	"github.com/op/go-logging"
 	"github.com/spf13/viper"
 	"github.com/7574-sistemas-distribuidos/docker-compose-init/client/common"
+	"github.com/pkg/errors"
+	"time"
 )
 
 var log = logging.MustGetLogger("log")
@@ -41,6 +43,9 @@ func InitConfig() (*viper.Viper, error) {
 	v.SetConfigFile("./config.yaml")
 	if err := v.ReadInConfig(); err != nil {
 		fmt.Printf("Configuration could not be read from config file. Using env variables instead")
+	}
+	if _, err := time.ParseDuration(v.GetString("polling.interval")); err != nil {
+		return nil, errors.Wrapf(err, "Could not parse polling interval from config file as time.Duration.")
 	}
 	return v, nil
 }
@@ -102,6 +107,7 @@ func main() {
 		ServerAddress: v.GetString("server.address"),
 		ID:            v.GetString("id"),
 		MaxBatchSize: v.GetInt("batch.maxamount"),
+		PollingInterval: v.GetDuration("polling.interval"),
 	}
 
 	client := common.NewClient(clientConfig)
