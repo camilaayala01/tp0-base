@@ -93,3 +93,8 @@ El servidor contesta:
     En el caso de PlaceBet se requiere enviar tambien las apuestas. Se mantiene el formato definido anteriormente. 
     Ahora cuando el cliente no puede aun consultar el servidor hace Long Polling, esperando en una variable de condicion a que todos esten listos por lo cual se cambio el sleep del loop del cliente por un timeout en el socket, el cual puede ser tomado del config. 
     
+
+# Parte 3
+### Mecanismos de sincronizacion: 
+    - Para el acceso al archivo de apuestas se definio un lock, el cual se toma tanto para leer como para escribir en el archivo
+    - Para el Long Polling que se da cuando un cliente consulta por los resultados del sorteo pero aun no se hizo se uso una variable de condicion. 

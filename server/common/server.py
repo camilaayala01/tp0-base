@@ -10,8 +10,7 @@ AGENCY_COUNT = 5
 class SyncTools:
     def __init__(self):
         self._socket_queue =  queue.Queue()
-        self._read_storage_lock = Lock()
-        self._write_storage_lock = Lock()
+        self._storage_lock = Lock()
         self._ready_agencies_count_cv = Condition()
         
 class Server:
@@ -72,7 +71,7 @@ class Server:
             logging.error("action: apuesta_recibida | result: fail | cantidad: " + str(len(bet_msgs)))
             send_msg(client_sock, MsgType.PLACE_BETS_ERR, str(len(bet_msgs))) 
         bets = build_bets(bet_msgs)
-        with self._sync_tools._write_storage_lock:
+        with self._sync_tools._storage_lock:
             store_bets(bets)
         logging.debug(f"action: apuesta_recibida | result: success | cantidad: {len(bet_msgs)}")
         send_msg(client_sock, MsgType.PLACE_BETS_OK, str(len(bet_msgs)))
@@ -83,7 +82,7 @@ class Server:
             while (not len(self._ready_agencies) == AGENCY_COUNT) and self._running: 
                 self._sync_tools._ready_agencies_count_cv.wait()
         if self._running:
-            with self._sync_tools._read_storage_lock:
+            with self._sync_tools._storage_lock:
                 winners = get_winners_for_agency(agency_id)
             send_msg(client_sock, MsgType.REQ_RESULTS_OK, format_list(winners))
 
