@@ -15,7 +15,12 @@ class MsgType(Enum):
     REQ_RESULTS_OK = 4
     SERVER_ERR = 5
     PLACE_BETS_ERR = 6
-
+    
+"""
+Receives a bytes buffer and an amount of fields to read. If the buffer ends with the length of a packet 
+it will return those bytes for them to be appended to the respective field. Otherwise it will read from the buffer said
+length of bytes and decode them as a string.
+"""
 
 def parse_msg(buffer: bytes, fields_to_read: int) -> tuple[int, list[str]]:
     fields: list[str] = []
