@@ -64,18 +64,17 @@ Ahora el servidor responde con la cantidad de apuestas que pudo almacenar. El cl
 
 ### ej7:
 Como hay mas mensajes se agregan un campo MsgType a los mensajes que puede ser:
-
-   -  PLACE_BETS = 0
-    - NOTIFY = 1
-    - REQ_RESULTS = 2
-     - PLACE_BETS_OK = 3
-    -  REQ_RESULTS_OK = 4
-     - SERVER_ERR = 5
-     - PLACE_BETS_ERR = 6
+-  PLACE_BETS = 0
+- NOTIFY = 1
+- REQ_RESULTS = 2
+- PLACE_BETS_OK = 3
+-  REQ_RESULTS_OK = 4
+- SERVER_ERR = 5
+- PLACE_BETS_ERR = 6
 
 El servidor contesta:
 
-    - en el caso de REQ_RESPONSE con un mensaje que contiene los dnis de los ganadores con el formato "dni1,dni2, .. ,dnin\n". 
-    - en el caso de PLACE_BET con la cantidad de apuestas procesadas correctamente. 
-    - en el caso de NOTIFY el servidor no contesta y el cliente no espera ninguna respuesta.
-    - Si todavia no puede consultar simplemente se cierra la conexion. Ante esto el cliente pasa a dormir un tiempo determinado en la variable del archivo de configuracion PollingInterval y luego intenta de nuevo (Polling)
+- en el caso de REQ_RESPONSE con un mensaje que contiene los dnis de los ganadores con el formato "dni1,dni2, .. ,dnin\n". 
+- en el caso de PLACE_BET con la cantidad de apuestas procesadas correctamente. 
+- en el caso de NOTIFY el servidor no contesta y el cliente no espera ninguna respuesta.
+- Si todavia no puede consultar simplemente se cierra la conexion. Ante esto el cliente pasa a dormir un tiempo determinado en la variable del archivo de configuracion PollingInterval y luego intenta de nuevo (Polling)
