@@ -2,6 +2,7 @@ import socket
 from enum import Enum
 
 LEN_BYTES = 1
+AGENCY_ID_BYTES = 1
 END_CHARACTER = "\n"
 SEPARATOR = ","
 EXPECTED_MSG_FIELDS = 6
@@ -64,9 +65,11 @@ Will return error = True if:
 def receive_bets(socket:socket)-> tuple[list[list[str]], bool]:
     packets: list[list[str]] = []
     error: bool = False
-    batch_len_bytes: bytes = socket.recv(LEN_BYTES)
+    batch_len_bytes: bytes = socket.recv(LEN_BYTES) 
     if not batch_len_bytes:
         return packets, True
+    while len(batch_len_bytes) < LEN_BYTES:
+        batch_len_bytes += socket.recv(LEN_BYTES) 
     batch_len = int.from_bytes(batch_len_bytes, 'big')
     while len(packets) < batch_len and not error:
         buffer: bytes = socket.recv(BUFFER_SIZE)
@@ -83,7 +86,7 @@ def receive_bets(socket:socket)-> tuple[list[list[str]], bool]:
     return packets, error
 
 def get_agency_id(socket: socket)-> int:
-    return get_fixed_len_number_field(socket, LEN_BYTES)
+    return get_fixed_len_number_field(socket, AGENCY_ID_BYTES)
 
 def get_msg_type(socket: socket)-> int:
     return get_fixed_len_number_field(socket, LEN_BYTES)
@@ -110,7 +113,5 @@ def format_and_encode(msg_type: MsgType, msg: str) -> bytes:
 
 def send_msg(socket: socket, msg_type: MsgType, msg: str):
     msg_bytes = format_and_encode(msg_type, msg)
-    bytes_sent = socket.send(msg_bytes)
-    while bytes_sent < len(msg_bytes):
-        socket.send(msg_bytes[bytes_sent:len(msg_bytes)])
+    socket.sendall(msg_bytes)
     
