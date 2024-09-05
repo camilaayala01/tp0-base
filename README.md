@@ -84,9 +84,17 @@ El servidor contesta:
     Ahora cuando el cliente no puede aun consultar el servidor hace Long Polling, esperando en una variable de condicion a que todos esten listos por lo cual se cambio el sleep del loop del cliente por un timeout en el socket, el cual puede ser tomado del config. 
 
 # Parte 3
-### Mecanismos de sincronizacion: 
-    Para simular un paralelismo use threads de la libreria threading de Python. Debido a que las operaciones a paralelizar son del tipo I/O (lectura de socket del cliente, escritura y lectura del archivo de apuestas) y no de procesamiento de CPU, el GLI (Global Lock Interpreter) no causo problemas de performance. Cuando se levanta el servidor levanto un hilo por agencia (numero conocido y fijo por enunciado) y cada uno lee de una cola de sockets. Cuando un nuevo cliente se conecta se inserta el socket en dicha cola para que un thread lo desencole y se encargue de llevar a cabo el manejo de la comunicacion con ese cliente. Cuando el server finaliza inserta None en la cola una cantidad de veces igual a la cantidad de hilos lo cual les indica que deben terminar. 
-    - Para el acceso al archivo de apuestas se definio un lock, el cual se toma tanto para leer como para escribir en el archivo
-    - Para el Long Polling que se da cuando un cliente consulta por los resultados del sorteo pero aun no se hizo se uso una variable de condicion. 
-    
-    Cada vez que llega un nuevo mensaje de notificacion se va a chequear si es posible hacer el sorteo. Si lo es entonces se va a notificar a quienes estuviesen esperando. Cada vez que llega un pedido de Resultados se chequea si puede hacerse el sorteo. Si puede hacerse entonces se lockea el archivo de apuestas y se consulta a los ganadores de esa agencia. Si no se puede entonces se va a esperar en la variable de condicion hasta que alguien le notifique o le llegue al servidor un SIGTERM. 
+## Mecanismos de sincronizacion: 
+Para simular un paralelismo use threads de la libreria threading de Python. Debido a que las operaciones a paralelizar son del tipo I/O (lectura de socket del cliente, escritura y lectura del archivo de apuestas) y no de procesamiento de CPU, el GLI (Global Lock Interpreter) no causo problemas de performance. 
+
+Cuando se levanta el servidor levanto un hilo por agencia (numero conocido y fijo por enunciado) y cada uno lee de una cola de sockets. 
+
+Cuando un nuevo cliente se conecta se inserta el socket en dicha cola para que un thread lo desencole y se encargue de llevar a cabo el manejo de la comunicacion con ese cliente. 
+
+Cuando el server finaliza inserta None en la cola una cantidad de veces igual a la cantidad de hilos lo cual les indica que deben terminar. 
+- Para el acceso al archivo de apuestas se definio un lock, el cual se toma tanto para leer como para escribir en el archivo
+- Para el Long Polling que se da cuando un cliente consulta por los resultados del sorteo pero aun no se hizo se uso una variable de condicion. 
+
+Cada vez que llega un nuevo mensaje de notificacion se va a chequear si es posible hacer el sorteo. Si lo es entonces se va a notificar a quienes estuviesen esperando. 
+
+Cada vez que llega un pedido de Resultados se chequea si puede hacerse el sorteo. Si puede hacerse entonces se lockea el archivo de apuestas y se consulta a los ganadores de esa agencia. Si no se puede entonces se va a esperar en la variable de condicion hasta que alguien le notifique o le llegue al servidor un SIGTERM. 
