@@ -37,6 +37,11 @@ def parse_msg(buffer: bytes, fields_to_read: int) -> tuple[int, list[str]]:
         else:
             break
     return idx, fields
+"""
+Receives a message from a buffer and if it is cut in half it reads more bytes from the stream.
+Will return the parsed message and remaining buffer bytes
+Will fail if the stream is close in the middle of a package. 
+"""
 
 def receive_msg(buffer: bytes, socket: socket)-> tuple[list[str], bytes]:
     read, msg = parse_msg(buffer, EXPECTED_MSG_FIELDS)
@@ -49,7 +54,13 @@ def receive_msg(buffer: bytes, socket: socket)-> tuple[list[str], bytes]:
         read, more_msg = parse_msg(buffer, EXPECTED_MSG_FIELDS - len(msg))
         msg += more_msg
     return msg, buffer[read:len(buffer)]
-
+"""
+Receives a length of a batch from socket and tries to read them
+Will read a fixed amount of bytes and try to process all the packages there before requesting more bytes
+Will return error = True if:
+- The stream ended in the middle of a bet
+- The socket was closed before the length or the amount of indicated packets could be read.
+"""
 def receive_bets(socket:socket)-> tuple[list[list[str]], bool]:
     packets: list[list[str]] = []
     error: bool = False
